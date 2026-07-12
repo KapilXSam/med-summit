@@ -59,7 +59,7 @@ export function exportExecutiveSummaryPdf({
   doc.setFontSize(10);
   doc.setTextColor(203, 213, 225);
   doc.text(
-    `${conference.name} · ${conference.location}`,
+    ascii(`${conference.name} - ${conference.location}`),
     marginX,
     80,
   );
