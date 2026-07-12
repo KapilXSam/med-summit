@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { kits, sessions } from "@/data/mock";
+import { useKits, useSessions } from "@/lib/hooks";
 import { AlertTriangle, CheckCircle2, Target, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/live/kiq")({
@@ -12,6 +12,8 @@ export const Route = createFileRoute("/live/kiq")({
 });
 
 function KiqTracker() {
+  const { data: kits = [] } = useKits();
+  const { data: sessions = [] } = useSessions();
   const suggestions = sessions.slice(6, 9);
 
   return (

@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StubNotice } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { hypotheses, kits } from "@/data/mock";
+import { useHypotheses, useKits } from "@/lib/hooks";
+import type { Kit } from "@/data/types";
 import { ExternalLink, FlaskConical, TriangleAlert } from "lucide-react";
 
 export const Route = createFileRoute("/pre/hypotheses")({
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/pre/hypotheses")({
 
 const rank = { High: 3, Medium: 2, Low: 1 } as const;
 
-function kiqLabel(kiqId: string) {
+function kiqLabel(kiqId: string, kits: Kit[]) {
   for (const kit of kits) {
     const kiq = kit.kiqs.find((k) => k.id === kiqId);
     if (kiq) return kiq.question;
@@ -39,6 +40,8 @@ function Meter({ label, level }: { label: string; level: "High" | "Medium" | "Lo
 }
 
 function Hypotheses() {
+  const { data: hypotheses = [] } = useHypotheses();
+  const { data: kits = [] } = useKits();
   const sorted = [...hypotheses].sort(
     (a, b) => rank[b.impact] + rank[b.likelihood] - (rank[a.impact] + rank[a.likelihood]),
   );
@@ -62,7 +65,7 @@ function Hypotheses() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <FlaskConical className="h-3.5 w-3.5 text-primary" />
-                  {kiqLabel(h.kiqId)}
+                  {kiqLabel(h.kiqId, kits) || "Unmapped hypothesis"}
                 </div>
                 {h.gap && (
                   <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-700">

@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { endpoints } from "@/data/mock";
+import { useEndpoints } from "@/lib/hooks";
 import { toast } from "sonner";
 import { Download, Table2 } from "lucide-react";
 
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/post/endpoints")({
 });
 
 function Endpoints() {
+  const { data: endpoints = [] } = useEndpoints();
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader

@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Fragment, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useApp } from "@/context/app-context";
+import { insertSessions } from "@/lib/db";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -44,6 +47,7 @@ import {
   ShieldCheck,
   Gauge,
   ListChecks,
+  Save,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({
@@ -54,6 +58,35 @@ export const Route = createFileRoute("/pre/extraction")({
 function Extraction() {
   const ingest = useServerFn(ingestConferenceUrl);
   const retryField = useServerFn(retryFieldExtraction);
+  const { conference } = useApp();
+  const qc = useQueryClient();
+
+  const saveMut = useMutation({
+    mutationFn: (sessions: ExtractedSession[]) =>
+      insertSessions(
+        sessions.map((s) => ({
+          conferenceId: conference.id,
+          title: s.title || "Untitled session",
+          authors: s.authors,
+          affiliation: s.affiliation,
+          day: s.day,
+          time: s.time,
+          room: s.room,
+          trialId: s.trialId,
+          therapyArea: s.therapyArea,
+          asset: s.asset,
+          confidence: s.confidence,
+          sourceUrl,
+        })),
+      ),
+    onSuccess: (inserted) => {
+      qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
+      toast.success(
+        `Saved ${inserted.length} session${inserted.length === 1 ? "" : "s"} to ${conference.acronym} — now available in the Planner`,
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const [url, setUrl] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -164,14 +197,27 @@ function Extraction() {
         description="Ingest a live conference agenda URL, extract every session field with per-field confidence scoring, and edit or re-run low-confidence values."
         actions={
           rows.length > 0 ? (
-            <Button variant="secondary" onClick={handleIngest} disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-              Re-run extraction
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={handleIngest} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                Re-run extraction
+              </Button>
+              <Button
+                onClick={() => saveMut.mutate(rows)}
+                disabled={saveMut.isPending}
+              >
+                {saveMut.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save {rows.length} to {conference.acronym}
+              </Button>
+            </div>
           ) : undefined
         }
       />

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { posters } from "@/data/mock";
+import { usePosters } from "@/lib/hooks";
 import { CheckCircle2, FileStack, Play } from "lucide-react";
 
 export const Route = createFileRoute("/post/summaries")({
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/post/summaries")({
 });
 
 function Summaries() {
+  const { data: posters = [] } = usePosters();
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [length, setLength] = useState("standard");

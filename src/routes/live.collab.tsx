@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/context/app-context";
+import { useComments } from "@/lib/hooks";
+import { addComment } from "@/lib/db";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { comments as seedComments } from "@/data/mock";
-import type { Comment } from "@/data/types";
 import { AtSign, MessageSquarePlus, Send } from "lucide-react";
 
 export const Route = createFileRoute("/live/collab")({
@@ -27,24 +30,42 @@ function renderText(text: string) {
 }
 
 function Collab() {
-  const [comments, setComments] = useState<Comment[]>(seedComments);
+  const { conference } = useApp();
+  const qc = useQueryClient();
+  const { data: comments = [] } = useComments();
   const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("comments-" + conference.id)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments" },
+        () => qc.invalidateQueries({ queryKey: ["comments", conference.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conference.id, qc]);
+
+  const postMut = useMutation({
+    mutationFn: (text: string) => {
+      const mentions = (text.match(/@[\w.\s]+/g) ?? []).map((m) => m.slice(1).trim());
+      return addComment(conference.id, {
+        author: "Dr. Elena Marsh",
+        initials: "EM",
+        text,
+        target: "AURORA-3 poster",
+        mentions,
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", conference.id] }),
+  });
 
   const post = () => {
     if (!draft.trim()) return;
-    const mentions = (draft.match(/@[\w.\s]+/g) ?? []).map((m) => m.slice(1).trim());
-    setComments((prev) => [
-      ...prev,
-      {
-        id: `c${prev.length + 1}`,
-        author: "Dr. Elena Marsh",
-        initials: "EM",
-        text: draft,
-        time: "now",
-        target: "AURORA-3 poster",
-        mentions,
-      },
-    ]);
+    postMut.mutate(draft);
     setDraft("");
   };
 

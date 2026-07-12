@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { conferences } from "@/data/mock";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +35,7 @@ const stats = [
 ];
 
 function Portfolio() {
-  const { setConferenceId } = useApp();
+  const { conferences, setConferenceId } = useApp();
 
   return (
     <div className="mx-auto max-w-6xl">

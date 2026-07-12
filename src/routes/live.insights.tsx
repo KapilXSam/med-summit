@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfidenceBadge, SourceChip } from "@/components/attribution";
-import { insights } from "@/data/mock";
+import { useInsights } from "@/lib/hooks";
 import { useApp } from "@/context/app-context";
 import { AlertOctagon, EyeOff, Sparkles, Star } from "lucide-react";
 
@@ -18,6 +18,7 @@ type Filter = "all" | "significant" | "contradictory";
 
 function LiveInsights() {
   const { isClientViewer } = useApp();
+  const { data: insights = [] } = useInsights();
   const [filter, setFilter] = useState<Filter>("all");
 
   const rows = insights
