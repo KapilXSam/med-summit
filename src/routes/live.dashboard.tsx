@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ConfidenceBadge } from "@/components/attribution";
-import { kits, insights, sessions, delegates } from "@/data/mock";
+import { useKits, useInsights, useSessions, useDelegates } from "@/lib/hooks";
 import { Camera, CheckCircle2, Clock, Radio, Sparkles, Wifi } from "lucide-react";
 
 export const Route = createFileRoute("/live/dashboard")({
@@ -14,6 +14,10 @@ export const Route = createFileRoute("/live/dashboard")({
 });
 
 function LiveDashboard() {
+  const { data: kits = [] } = useKits();
+  const { data: insights = [] } = useInsights();
+  const { data: sessions = [] } = useSessions();
+  const { data: delegates = [] } = useDelegates();
   const nowSessions = sessions.slice(0, 5);
   const allKiqs = kits.flatMap((k) => k.kiqs);
   const liveInsights = insights.filter((i) => !i.duplicateOf).slice(0, 4);
@@ -45,7 +49,7 @@ function LiveDashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             {nowSessions.map((s, idx) => {
-              const d = delegates[idx % delegates.length];
+              const d = delegates.length ? delegates[idx % delegates.length] : null;
               const checkedIn = idx % 2 === 0;
               return (
                 <div
@@ -60,7 +64,7 @@ function LiveDashboard() {
                     <div className="truncate text-sm font-medium">{s.title}</div>
                     <div className="text-xs text-muted-foreground">{s.therapyArea}</div>
                   </div>
-                  {checkedIn ? (
+                  {checkedIn && d ? (
                     <Badge className="gap-1 text-[10px]">
                       <CheckCircle2 className="h-3 w-3" /> {d.initials}
                     </Badge>

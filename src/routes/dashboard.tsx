@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/app-context";
-import { kits, insights, sessions, lbaAlerts, delegates } from "@/data/mock";
+import { useKits, useInsights, useSessions, useLbaAlerts, useDelegates } from "@/lib/hooks";
 import { ConfidenceBadge } from "@/components/attribution";
 import { ArrowRight, Sparkles, Users, BellRing } from "lucide-react";
 
@@ -18,10 +18,15 @@ export const Route = createFileRoute("/dashboard")({
 
 function Dashboard() {
   const { conference } = useApp();
+  const { data: kits = [] } = useKits();
+  const { data: insights = [] } = useInsights();
+  const { data: sessions = [] } = useSessions();
+  const { data: lbaAlerts = [] } = useLbaAlerts();
+  const { data: delegates = [] } = useDelegates();
   const allKiqs = kits.flatMap((k) => k.kiqs);
-  const avgCompletion = Math.round(
-    allKiqs.reduce((a, k) => a + k.completion, 0) / allKiqs.length,
-  );
+  const avgCompletion = allKiqs.length
+    ? Math.round(allKiqs.reduce((a, k) => a + k.completion, 0) / allKiqs.length)
+    : 0;
   const flagged = sessions.filter((s) => s.confidence < 70).length;
 
   return (
