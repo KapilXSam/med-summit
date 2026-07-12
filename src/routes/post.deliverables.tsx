@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { useInsights } from "@/lib/hooks";
 import { useApp } from "@/context/app-context";
 import { ExtractionMark } from "@/components/attribution";
-import { Clock, FileText, FileType2, Presentation, Check } from "lucide-react";
+import { exportExecutiveSummaryPdf } from "@/lib/export-pdf";
+import { FileText, FileType2, Presentation, Check, Download } from "lucide-react";
 
 export const Route = createFileRoute("/post/deliverables")({
   head: () => ({ meta: [{ title: "Deliverable Generator — VERA 2.0" }] }),
@@ -43,6 +44,16 @@ function Deliverables() {
   const selected = tiers.find((t) => t.id === tier)!;
   const preview = insights.filter((i) => !i.duplicateOf).slice(0, selected.bullets);
 
+  const handleExportPdf = () => {
+    exportExecutiveSummaryPdf({
+      conference,
+      tierName: selected.name,
+      tierDescription: selected.desc,
+      insights: preview,
+    });
+    toast.success(`Downloaded ${selected.name} PDF for ${conference.acronym}`);
+  };
+
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
@@ -50,12 +61,15 @@ function Deliverables() {
         title="Deliverable Generator"
         description="Three tiers of executive summary and a full report, exportable to Word, PowerPoint, and PDF — with full source attribution on every claim."
         actions={
-          <Badge variant="secondary" className="gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-emerald-600" /> First draft ready in 60 min
-          </Badge>
+          <Button size="sm" onClick={handleExportPdf}>
+            <Download className="h-4 w-4" /> Download PDF summary
+          </Button>
         }
       />
-      <StubNotice>Generation and export are simulated for this prototype.</StubNotice>
+      <StubNotice>
+        Word and PowerPoint export are simulated. PDF export generates a real,
+        downloadable executive summary with source attribution.
+      </StubNotice>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         {tiers.map((t) => (
@@ -84,7 +98,6 @@ function Deliverables() {
             {[
               { label: "Word", icon: FileText },
               { label: "PowerPoint", icon: Presentation },
-              { label: "PDF", icon: FileType2 },
             ].map((f) => (
               <Button
                 key={f.label}
@@ -95,6 +108,9 @@ function Deliverables() {
                 <f.icon className="h-4 w-4" /> {f.label}
               </Button>
             ))}
+            <Button size="sm" onClick={handleExportPdf}>
+              <FileType2 className="h-4 w-4" /> PDF
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
