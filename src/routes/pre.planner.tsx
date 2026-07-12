@@ -28,6 +28,7 @@ import {
   TriangleAlert,
   Clock,
   MapPin,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
@@ -63,12 +64,35 @@ function Planner() {
   const [agenda, setAgenda] = useState<AgendaItem[]>(() =>
     allSessions.slice(0, 8).map(toAgendaItem),
   );
-  const [area, setArea] = useState("All");
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const areas = ["All", "Lung", "Breast", "GI", "GU", "Hematology"];
+  const [filters, setFilters] = useState({
+    track: "All",
+    company: "All",
+    format: "All",
+    kol: "All",
+    asset: "All",
+  });
+
+  const uniq = (values: string[]) => ["All", ...[...new Set(values)].sort()];
+  const options = useMemo(
+    () => ({
+      track: uniq(allSessions.map((s) => s.therapyArea)),
+      company: uniq(allSessions.map((s) => s.affiliation)),
+      format: uniq(allSessions.map((s) => s.phase)),
+      kol: uniq(allSessions.map((s) => s.authors)),
+      asset: uniq(allSessions.map((s) => s.asset)),
+    }),
+    [],
+  );
+
+  const setFilter = (key: keyof typeof filters, value: string) =>
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  const resetFilters = () =>
+    setFilters({ track: "All", company: "All", format: "All", kol: "All", asset: "All" });
+  const activeFilterCount = Object.values(filters).filter((v) => v !== "All").length;
 
   const inAgenda = useMemo(() => new Set(agenda.map((a) => a.id)), [agenda]);
 
@@ -77,13 +101,26 @@ function Planner() {
       allSessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
-          (area === "All" || s.therapyArea === area) &&
+          (filters.track === "All" || s.therapyArea === filters.track) &&
+          (filters.company === "All" || s.affiliation === filters.company) &&
+          (filters.format === "All" || s.phase === filters.format) &&
+          (filters.kol === "All" || s.authors === filters.kol) &&
+          (filters.asset === "All" || s.asset === filters.asset) &&
           (query === "" ||
             s.title.toLowerCase().includes(query.toLowerCase()) ||
             s.room.toLowerCase().includes(query.toLowerCase())),
       ),
-    [inAgenda, area, query],
+    [inAgenda, filters, query],
   );
+
+  const filterConfig: { key: keyof typeof filters; label: string; opts: string[] }[] = [
+    { key: "track", label: "Track", opts: options.track },
+    { key: "company", label: "Company", opts: options.company },
+    { key: "format", label: "Format", opts: options.format },
+    { key: "kol", label: "KOL", opts: options.kol },
+    { key: "asset", label: "Asset", opts: options.asset },
+  ];
+
 
   // group agenda by day, preserving insertion order within each day
   const grouped = useMemo(() => {
@@ -160,19 +197,31 @@ function Planner() {
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         {/* Available sessions */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Select value={area} onValueChange={setArea}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {areas.map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a === "All" ? "All therapy areas" : a}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-2">
+            {filterConfig.map(({ key, label, opts }) => (
+              <Select
+                key={key}
+                value={filters[key]}
+                onValueChange={(v) => setFilter(key, v)}
+              >
+                <SelectTrigger
+                  className={filters[key] !== "All" ? "border-primary/50" : undefined}
+                >
+                  <SelectValue placeholder={label}>
+                    <span className="truncate">
+                      {filters[key] === "All" ? label : filters[key]}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {opts.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {o === "All" ? `All ${label.toLowerCase()}s` : o}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
           </div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -183,6 +232,18 @@ function Planner() {
               className="pl-9"
             />
           </div>
+          {activeFilterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 justify-start px-2 text-xs text-muted-foreground"
+              onClick={resetFilters}
+            >
+              <X className="h-3 w-3" /> Clear {activeFilterCount} filter
+              {activeFilterCount === 1 ? "" : "s"}
+            </Button>
+          )}
+
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {available.length} extracted session{available.length === 1 ? "" : "s"}
           </div>
