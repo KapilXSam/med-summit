@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrePlannerRouteImport } from './routes/pre.planner'
 import { Route as PreLbaRouteImport } from './routes/pre.lba'
 import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
+import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -41,6 +42,11 @@ const PreKitkiqRoute = PreKitkiqRouteImport.update({
   path: '/pre/kitkiq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreHypothesesRoute = PreHypothesesRouteImport.update({
+  id: '/pre/hypotheses',
+  path: '/pre/hypotheses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreExtractionRoute = PreExtractionRouteImport.update({
   id: '/pre/extraction',
   path: '/pre/extraction',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/pre/extraction'
+    | '/pre/hypotheses'
     | '/pre/kitkiq'
     | '/pre/lba'
     | '/pre/planner'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/pre/extraction'
+    | '/pre/hypotheses'
     | '/pre/kitkiq'
     | '/pre/lba'
     | '/pre/planner'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/pre/extraction'
+    | '/pre/hypotheses'
     | '/pre/kitkiq'
     | '/pre/lba'
     | '/pre/planner'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   PreExtractionRoute: typeof PreExtractionRoute
+  PreHypothesesRoute: typeof PreHypothesesRoute
   PreKitkiqRoute: typeof PreKitkiqRoute
   PreLbaRoute: typeof PreLbaRoute
   PrePlannerRoute: typeof PrePlannerRoute
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreKitkiqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pre/hypotheses': {
+      id: '/pre/hypotheses'
+      path: '/pre/hypotheses'
+      fullPath: '/pre/hypotheses'
+      preLoaderRoute: typeof PreHypothesesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pre/extraction': {
       id: '/pre/extraction'
       path: '/pre/extraction'
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   PreExtractionRoute: PreExtractionRoute,
+  PreHypothesesRoute: PreHypothesesRoute,
   PreKitkiqRoute: PreKitkiqRoute,
   PreLbaRoute: PreLbaRoute,
   PrePlannerRoute: PrePlannerRoute,
