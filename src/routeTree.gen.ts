@@ -13,6 +13,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrePlannerRouteImport } from './routes/pre.planner'
 import { Route as PreLbaRouteImport } from './routes/pre.lba'
+import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -35,6 +36,11 @@ const PreLbaRoute = PreLbaRouteImport.update({
   path: '/pre/lba',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreKitkiqRoute = PreKitkiqRouteImport.update({
+  id: '/pre/kitkiq',
+  path: '/pre/kitkiq',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreExtractionRoute = PreExtractionRouteImport.update({
   id: '/pre/extraction',
   path: '/pre/extraction',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/pre/extraction'
+    | '/pre/kitkiq'
     | '/pre/lba'
     | '/pre/planner'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/pre/extraction' | '/pre/lba' | '/pre/planner'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/pre/extraction'
+    | '/pre/kitkiq'
+    | '/pre/lba'
+    | '/pre/planner'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/pre/extraction'
+    | '/pre/kitkiq'
     | '/pre/lba'
     | '/pre/planner'
   fileRoutesById: FileRoutesById
@@ -86,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   PreExtractionRoute: typeof PreExtractionRoute
+  PreKitkiqRoute: typeof PreKitkiqRoute
   PreLbaRoute: typeof PreLbaRoute
   PrePlannerRoute: typeof PrePlannerRoute
 }
@@ -120,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreLbaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pre/kitkiq': {
+      id: '/pre/kitkiq'
+      path: '/pre/kitkiq'
+      fullPath: '/pre/kitkiq'
+      preLoaderRoute: typeof PreKitkiqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pre/extraction': {
       id: '/pre/extraction'
       path: '/pre/extraction'
@@ -134,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   PreExtractionRoute: PreExtractionRoute,
+  PreKitkiqRoute: PreKitkiqRoute,
   PreLbaRoute: PreLbaRoute,
   PrePlannerRoute: PrePlannerRoute,
 }
