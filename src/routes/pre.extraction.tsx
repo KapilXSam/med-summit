@@ -58,6 +58,35 @@ export const Route = createFileRoute("/pre/extraction")({
 function Extraction() {
   const ingest = useServerFn(ingestConferenceUrl);
   const retryField = useServerFn(retryFieldExtraction);
+  const { conference } = useApp();
+  const qc = useQueryClient();
+
+  const saveMut = useMutation({
+    mutationFn: (sessions: ExtractedSession[]) =>
+      insertSessions(
+        sessions.map((s) => ({
+          conferenceId: conference.id,
+          title: s.title || "Untitled session",
+          authors: s.authors,
+          affiliation: s.affiliation,
+          day: s.day,
+          time: s.time,
+          room: s.room,
+          trialId: s.trialId,
+          therapyArea: s.therapyArea,
+          asset: s.asset,
+          confidence: s.confidence,
+          sourceUrl,
+        })),
+      ),
+    onSuccess: (inserted) => {
+      qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
+      toast.success(
+        `Saved ${inserted.length} session${inserted.length === 1 ? "" : "s"} to ${conference.acronym} — now available in the Planner`,
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const [url, setUrl] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
