@@ -13,45 +13,46 @@ import type {
 
 export const conferences: Conference[] = [
   {
-    id: "asco-2025",
-    name: "American Society of Clinical Oncology Annual Meeting",
-    acronym: "ASCO 2025",
-    location: "Chicago, IL",
-    startDate: "2025-05-30",
-    endDate: "2025-06-03",
-    therapyAreas: ["Oncology", "Hematology"],
-    sessionCount: 4218,
-    delegateCount: 12,
-    status: "Live",
-    phase: "live",
-  },
-  {
-    id: "esmo-2025",
+    id: "esmo-2026",
     name: "European Society for Medical Oncology Congress",
-    acronym: "ESMO 2025",
-    location: "Berlin, Germany",
-    startDate: "2025-10-17",
-    endDate: "2025-10-21",
+    acronym: "ESMO 2026",
+    location: "Munich, Germany",
+    startDate: "2026-10-16",
+    endDate: "2026-10-20",
     therapyAreas: ["Oncology"],
-    sessionCount: 3102,
-    delegateCount: 8,
+    sessionCount: 3260,
+    delegateCount: 10,
     status: "Planning",
     phase: "pre",
   },
   {
-    id: "ash-2024",
+    id: "ash-2026",
     name: "American Society of Hematology Annual Meeting",
-    acronym: "ASH 2024",
-    location: "San Diego, CA",
-    startDate: "2024-12-07",
-    endDate: "2024-12-10",
+    acronym: "ASH 2026",
+    location: "Orlando, FL",
+    startDate: "2026-12-05",
+    endDate: "2026-12-08",
     therapyAreas: ["Hematology"],
-    sessionCount: 5010,
-    delegateCount: 15,
-    status: "Complete",
-    phase: "post",
+    sessionCount: 5120,
+    delegateCount: 14,
+    status: "Planning",
+    phase: "pre",
+  },
+  {
+    id: "asco-2027",
+    name: "American Society of Clinical Oncology Annual Meeting",
+    acronym: "ASCO 2027",
+    location: "Chicago, IL",
+    startDate: "2027-06-04",
+    endDate: "2027-06-08",
+    therapyAreas: ["Oncology", "Hematology"],
+    sessionCount: 4350,
+    delegateCount: 12,
+    status: "Planning",
+    phase: "pre",
   },
 ];
+
 
 export const delegates: Delegate[] = [
   { id: "d1", name: "Dr. Elena Marsh", initials: "EM", role: "Project Manager", focus: "Lung / IO" },
@@ -66,7 +67,7 @@ const therapyAreas = ["Lung", "Breast", "GI", "GU", "Hematology"];
 const assets = ["VRA-101", "VRA-204", "Competitor A", "Competitor B", "SoC"];
 const phases = ["Phase I", "Phase II", "Phase III", "Real-world"];
 const rooms = ["Hall A", "Hall B", "Arie Crown", "Room S406", "E354b"];
-const days = ["Fri May 30", "Sat May 31", "Sun Jun 1", "Mon Jun 2"];
+const days = ["Fri Oct 16", "Sat Oct 17", "Sun Oct 18", "Mon Oct 19"];
 
 export const sessions: Session[] = Array.from({ length: 42 }).map((_, i) => {
   const confidence = [98, 96, 94, 91, 88, 72, 64, 55][i % 8];

@@ -45,7 +45,7 @@ export const Route = createFileRoute("/pre/planner")({
   component: Planner,
 });
 
-const DAY_ORDER = ["Fri May 30", "Sat May 31", "Sun Jun 1", "Mon Jun 2"];
+const DAY_ORDER = ["Fri Oct 16", "Sat Oct 17", "Sun Oct 18", "Mon Oct 19"];
 
 interface AgendaItem {
   id: string;
