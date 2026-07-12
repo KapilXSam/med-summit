@@ -67,7 +67,7 @@ const therapyAreas = ["Lung", "Breast", "GI", "GU", "Hematology"];
 const assets = ["VRA-101", "VRA-204", "Competitor A", "Competitor B", "SoC"];
 const phases = ["Phase I", "Phase II", "Phase III", "Real-world"];
 const rooms = ["Hall A", "Hall B", "Arie Crown", "Room S406", "E354b"];
-const days = ["Fri May 30", "Sat May 31", "Sun Jun 1", "Mon Jun 2"];
+const days = ["Fri Oct 16", "Sat Oct 17", "Sun Oct 18", "Mon Oct 19"];
 
 export const sessions: Session[] = Array.from({ length: 42 }).map((_, i) => {
   const confidence = [98, 96, 94, 91, 88, 72, 64, 55][i % 8];
