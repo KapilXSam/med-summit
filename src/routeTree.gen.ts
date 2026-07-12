@@ -17,6 +17,7 @@ import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
 import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
+import { Route as LiveCaptureRouteImport } from './routes/live.capture'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -58,10 +59,16 @@ const LiveDashboardRoute = LiveDashboardRouteImport.update({
   path: '/live/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveCaptureRoute = LiveCaptureRouteImport.update({
+  id: '/live/capture',
+  path: '/live/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/live/capture': typeof LiveCaptureRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/live/capture': typeof LiveCaptureRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/live/capture': typeof LiveCaptureRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/live/capture'
     | '/live/dashboard'
     | '/pre/extraction'
     | '/pre/hypotheses'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/live/capture'
     | '/live/dashboard'
     | '/pre/extraction'
     | '/pre/hypotheses'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/live/capture'
     | '/live/dashboard'
     | '/pre/extraction'
     | '/pre/hypotheses'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  LiveCaptureRoute: typeof LiveCaptureRoute
   LiveDashboardRoute: typeof LiveDashboardRoute
   PreExtractionRoute: typeof PreExtractionRoute
   PreHypothesesRoute: typeof PreHypothesesRoute
@@ -192,12 +205,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live/capture': {
+      id: '/live/capture'
+      path: '/live/capture'
+      fullPath: '/live/capture'
+      preLoaderRoute: typeof LiveCaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  LiveCaptureRoute: LiveCaptureRoute,
   LiveDashboardRoute: LiveDashboardRoute,
   PreExtractionRoute: PreExtractionRoute,
   PreHypothesesRoute: PreHypothesesRoute,
