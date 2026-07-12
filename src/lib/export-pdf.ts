@@ -90,8 +90,8 @@ export function exportExecutiveSummaryPdf({
   }
 
   insights.forEach((insight, idx) => {
-    const bodyLines = doc.splitTextToSize(insight.text, contentWidth - 24);
-    const attribution = `Source: "${insight.sourceQuote}" — p.${insight.page} · confidence ${insight.confidence}/10`;
+    const bodyLines = doc.splitTextToSize(ascii(insight.text), contentWidth - 24);
+    const attribution = `Source: "${ascii(insight.sourceQuote)}" - p.${insight.page} | confidence ${insight.confidence}/10`;
     const attrLines = doc.splitTextToSize(attribution, contentWidth - 24);
     const blockHeight = bodyLines.length * 13 + attrLines.length * 11 + 22;
     ensureSpace(blockHeight);
