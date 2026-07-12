@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,148 +13,380 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { sessions as allSessions, delegates } from "@/data/mock";
-import { CalendarClock, UserPlus, TriangleAlert, CalendarDays } from "lucide-react";
+import { sessions as allSessions } from "@/data/mock";
+import type { Session } from "@/data/types";
+import {
+  CalendarDays,
+  Plus,
+  Trash2,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
+  Search,
+  Pencil,
+  Check,
+  TriangleAlert,
+  Clock,
+  MapPin,
+} from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
   head: () => ({ meta: [{ title: "Session Planner — VERA 2.0" }] }),
   component: Planner,
 });
 
+const DAY_ORDER = ["Fri May 30", "Sat May 31", "Sun Jun 1", "Mon Jun 2"];
+
+interface AgendaItem {
+  id: string;
+  title: string;
+  day: string;
+  time: string;
+  room: string;
+  therapyArea: string;
+  conflict?: boolean;
+}
+
+function toAgendaItem(s: Session): AgendaItem {
+  return {
+    id: s.id,
+    title: s.title,
+    day: s.day,
+    time: s.time,
+    room: s.room,
+    therapyArea: s.therapyArea,
+    conflict: s.conflict,
+  };
+}
+
 function Planner() {
-  const [area, setArea] = useState("All");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [delegate, setDelegate] = useState(delegates[0].id);
-  const [assignments, setAssignments] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      allSessions.filter((s) => s.assignedTo).map((s) => [s.id, s.assignedTo!]),
-    ),
+  const [agenda, setAgenda] = useState<AgendaItem[]>(() =>
+    allSessions.slice(0, 8).map(toAgendaItem),
   );
+  const [area, setArea] = useState("All");
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
 
   const areas = ["All", "Lung", "Breast", "GI", "GU", "Hematology"];
-  const rows = useMemo(
-    () => allSessions.filter((s) => area === "All" || s.therapyArea === area),
-    [area],
+
+  const inAgenda = useMemo(() => new Set(agenda.map((a) => a.id)), [agenda]);
+
+  const available = useMemo(
+    () =>
+      allSessions.filter(
+        (s) =>
+          !inAgenda.has(s.id) &&
+          (area === "All" || s.therapyArea === area) &&
+          (query === "" ||
+            s.title.toLowerCase().includes(query.toLowerCase()) ||
+            s.room.toLowerCase().includes(query.toLowerCase())),
+      ),
+    [inAgenda, area, query],
   );
 
-  const toggle = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
-  const assign = () => {
-    if (selected.size === 0) {
-      toast.error("Select sessions to assign first.");
-      return;
+  // group agenda by day, preserving insertion order within each day
+  const grouped = useMemo(() => {
+    const map = new Map<string, AgendaItem[]>();
+    for (const item of agenda) {
+      if (!map.has(item.day)) map.set(item.day, []);
+      map.get(item.day)!.push(item);
     }
-    const d = delegates.find((x) => x.id === delegate)!;
-    setAssignments((prev) => {
-      const next = { ...prev };
-      selected.forEach((id) => (next[id] = delegate));
-      return next;
-    });
-    toast.success(`Assigned ${selected.size} sessions to ${d.name}`);
-    setSelected(new Set());
+    return [...map.entries()].sort(
+      (a, b) => DAY_ORDER.indexOf(a[0]) - DAY_ORDER.indexOf(b[0]),
+    );
+  }, [agenda]);
+
+  const add = (s: Session) => {
+    setAgenda((prev) => [...prev, toAgendaItem(s)]);
+    toast.success("Added to agenda");
   };
 
-  const delegateName = (id?: string) => delegates.find((d) => d.id === id)?.initials;
+  const remove = (id: string) =>
+    setAgenda((prev) => prev.filter((a) => a.id !== id));
+
+  const update = (id: string, patch: Partial<AgendaItem>) =>
+    setAgenda((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+
+  // move an item up/down among its same-day siblings within the flat list
+  const moveWithinDay = (id: string, dir: -1 | 1) => {
+    setAgenda((prev) => {
+      const item = prev.find((a) => a.id === id);
+      if (!item) return prev;
+      const sameDay = prev.filter((a) => a.day === item.day);
+      const idx = sameDay.findIndex((a) => a.id === id);
+      const swapWith = sameDay[idx + dir];
+      if (!swapWith) return prev;
+      const next = [...prev];
+      const i = next.findIndex((a) => a.id === id);
+      const j = next.findIndex((a) => a.id === swapWith.id);
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  };
+
+  const onDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    setAgenda((prev) => {
+      const from = prev.findIndex((a) => a.id === dragId);
+      const to = prev.findIndex((a) => a.id === targetId);
+      if (from === -1 || to === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      moved.day = next[to > from ? to - 1 : to]?.day ?? moved.day;
+      const insertAt = next.findIndex((a) => a.id === targetId);
+      next.splice(insertAt, 0, moved);
+      return next;
+    });
+    setDragId(null);
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
         eyebrow="Module A · Pre-Conference"
         title="Session Planner"
-        description="Filter, tag, and allocate sessions to delegates with automatic conflict detection."
+        description="Group extracted sessions into a day-by-day agenda. Edit details inline and drag to reorder."
         actions={
           <Button
             variant="secondary"
-            onClick={() => toast.success("Calendar (.ics) exported for delegate")}
+            onClick={() => toast.success("Agenda exported as calendar (.ics)")}
           >
-            <CalendarDays className="h-4 w-4" /> Export calendar
+            <CalendarDays className="h-4 w-4" /> Export agenda
           </Button>
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Select value={area} onValueChange={setArea}>
-          <SelectTrigger className="w-[170px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {areas.map((a) => (
-              <SelectItem key={a} value={a}>
-                {a === "All" ? "All therapy areas" : a}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="ml-auto flex items-center gap-2 rounded-md border bg-card p-1.5">
-          <Badge variant={selected.size ? "default" : "secondary"}>
-            {selected.size} selected
-          </Badge>
-          <Select value={delegate} onValueChange={setDelegate}>
-            <SelectTrigger className="h-8 w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {delegates.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={assign}>
-            <UserPlus className="h-4 w-4" /> Assign
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-2">
-        {rows.map((s) => {
-          const isSelected = selected.has(s.id);
-          const assignedTo = assignments[s.id];
-          return (
-            <Card
-              key={s.id}
-              className={isSelected ? "border-primary ring-1 ring-primary/30" : undefined}
-            >
-              <CardContent className="flex items-center gap-3 p-3">
-                <Checkbox checked={isSelected} onCheckedChange={() => toggle(s.id)} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium">{s.title}</span>
-                    {s.conflict && (
-                      <Badge variant="destructive" className="shrink-0 gap-1 text-[10px]">
-                        <TriangleAlert className="h-3 w-3" /> Conflict
+      <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
+        {/* Available sessions */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Select value={area} onValueChange={setArea}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {areas.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a === "All" ? "All therapy areas" : a}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search extracted sessions"
+              className="pl-9"
+            />
+          </div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {available.length} extracted session{available.length === 1 ? "" : "s"}
+          </div>
+          <div className="grid max-h-[70vh] gap-2 overflow-y-auto pr-1">
+            {available.map((s) => (
+              <Card key={s.id} className="group">
+                <CardContent className="flex items-start gap-2 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="line-clamp-2 text-sm font-medium">{s.title}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <span>{s.day}</span>
+                      <span>· {s.time}</span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {s.therapyArea}
                       </Badge>
-                    )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CalendarClock className="h-3 w-3" />
-                    {s.day} · {s.time} · {s.room}
-                  </div>
-                </div>
-                <Badge variant="secondary" className="hidden text-[10px] sm:inline-flex">
-                  {s.therapyArea}
-                </Badge>
-                {assignedTo ? (
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
-                    title="Assigned"
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    aria-label="Add to agenda"
+                    onClick={() => add(s)}
                   >
-                    {delegateName(assignedTo)}
-                  </div>
-                ) : (
-                  <span className="w-8 text-center text-xs text-muted-foreground">—</span>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+            {available.length === 0 && (
+              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No sessions match. All extracted sessions may already be in your agenda.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Agenda */}
+        <div className="flex flex-col gap-5">
+          {grouped.length === 0 && (
+            <div className="rounded-lg border border-dashed p-12 text-center">
+              <CalendarDays className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Your agenda is empty. Add extracted sessions from the left to start
+                building a day-by-day plan.
+              </p>
+            </div>
+          )}
+
+          {grouped.map(([day, items]) => (
+            <div key={day}>
+              <div className="mb-2 flex items-center gap-2">
+                <h2 className="text-sm font-semibold">{day}</h2>
+                <Badge variant="secondary" className="text-[10px]">
+                  {items.length} session{items.length === 1 ? "" : "s"}
+                </Badge>
+              </div>
+              <div className="grid gap-2">
+                {items.map((item, idx) => {
+                  const isEditing = editing === item.id;
+                  return (
+                    <Card
+                      key={item.id}
+                      draggable={!isEditing}
+                      onDragStart={() => setDragId(item.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => onDrop(item.id)}
+                      className={
+                        dragId === item.id ? "opacity-50" : "transition-shadow"
+                      }
+                    >
+                      <CardContent className="flex items-start gap-2 p-3">
+                        <div className="flex flex-col items-center gap-0.5 pt-0.5 text-muted-foreground">
+                          <GripVertical className="h-4 w-4 cursor-grab" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          {isEditing ? (
+                            <div className="grid gap-2">
+                              <Input
+                                value={item.title}
+                                onChange={(e) =>
+                                  update(item.id, { title: e.target.value })
+                                }
+                                className="h-8"
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                <Select
+                                  value={item.day}
+                                  onValueChange={(v) => update(item.id, { day: v })}
+                                >
+                                  <SelectTrigger className="h-8 w-[140px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {DAY_ORDER.map((d) => (
+                                      <SelectItem key={d} value={d}>
+                                        {d}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  value={item.time}
+                                  onChange={(e) =>
+                                    update(item.id, { time: e.target.value })
+                                  }
+                                  className="h-8 w-24"
+                                  placeholder="Time"
+                                />
+                                <Input
+                                  value={item.room}
+                                  onChange={(e) =>
+                                    update(item.id, { room: e.target.value })
+                                  }
+                                  className="h-8 w-36"
+                                  placeholder="Room"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  {item.title}
+                                </span>
+                                {item.conflict && (
+                                  <Badge
+                                    variant="destructive"
+                                    className="shrink-0 gap-1 text-[10px]"
+                                  >
+                                    <TriangleAlert className="h-3 w-3" /> Conflict
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="h-3 w-3" /> {item.time}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" /> {item.room}
+                                </span>
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {item.therapyArea}
+                                </Badge>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            aria-label="Move up"
+                            disabled={idx === 0}
+                            onClick={() => moveWithinDay(item.id, -1)}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            aria-label="Move down"
+                            disabled={idx === items.length - 1}
+                            onClick={() => moveWithinDay(item.id, 1)}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            aria-label={isEditing ? "Done editing" : "Edit session"}
+                            onClick={() =>
+                              setEditing(isEditing ? null : item.id)
+                            }
+                          >
+                            {isEditing ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Pencil className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            aria-label="Remove from agenda"
+                            onClick={() => remove(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
