@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { sessions as allSessions } from "@/data/mock";
 import type { Session } from "@/data/types";
 import {
@@ -29,6 +37,7 @@ import {
   Clock,
   MapPin,
   X,
+  ChevronsUpDown,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
@@ -68,15 +77,16 @@ function Planner() {
   const [editing, setEditing] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState({
-    track: "All",
-    company: "All",
-    format: "All",
-    kol: "All",
-    asset: "All",
+  type FilterKey = "track" | "company" | "format" | "kol" | "asset";
+  const [filters, setFilters] = useState<Record<FilterKey, string[]>>({
+    track: [],
+    company: [],
+    format: [],
+    kol: [],
+    asset: [],
   });
 
-  const uniq = (values: string[]) => ["All", ...[...new Set(values)].sort()];
+  const uniq = (values: string[]) => [...new Set(values)].sort();
   const options = useMemo(
     () => ({
       track: uniq(allSessions.map((s) => s.therapyArea)),
@@ -88,11 +98,23 @@ function Planner() {
     [],
   );
 
-  const setFilter = (key: keyof typeof filters, value: string) =>
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const toggleFilter = (key: FilterKey, value: string) =>
+    setFilters((prev) => {
+      const set = new Set(prev[key]);
+      set.has(value) ? set.delete(value) : set.add(value);
+      return { ...prev, [key]: [...set] };
+    });
+  const clearFilter = (key: FilterKey) =>
+    setFilters((prev) => ({ ...prev, [key]: [] }));
   const resetFilters = () =>
-    setFilters({ track: "All", company: "All", format: "All", kol: "All", asset: "All" });
-  const activeFilterCount = Object.values(filters).filter((v) => v !== "All").length;
+    setFilters({ track: [], company: [], format: [], kol: [], asset: [] });
+  const activeFilterCount = Object.values(filters).reduce(
+    (n, arr) => n + arr.length,
+    0,
+  );
+
+  const matches = (selected: string[], value: string) =>
+    selected.length === 0 || selected.includes(value);
 
   const inAgenda = useMemo(() => new Set(agenda.map((a) => a.id)), [agenda]);
 
@@ -101,11 +123,11 @@ function Planner() {
       allSessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
-          (filters.track === "All" || s.therapyArea === filters.track) &&
-          (filters.company === "All" || s.affiliation === filters.company) &&
-          (filters.format === "All" || s.phase === filters.format) &&
-          (filters.kol === "All" || s.authors === filters.kol) &&
-          (filters.asset === "All" || s.asset === filters.asset) &&
+          matches(filters.track, s.therapyArea) &&
+          matches(filters.company, s.affiliation) &&
+          matches(filters.format, s.phase) &&
+          matches(filters.kol, s.authors) &&
+          matches(filters.asset, s.asset) &&
           (query === "" ||
             s.title.toLowerCase().includes(query.toLowerCase()) ||
             s.room.toLowerCase().includes(query.toLowerCase())),
@@ -113,13 +135,14 @@ function Planner() {
     [inAgenda, filters, query],
   );
 
-  const filterConfig: { key: keyof typeof filters; label: string; opts: string[] }[] = [
+  const filterConfig: { key: FilterKey; label: string; opts: string[] }[] = [
     { key: "track", label: "Track", opts: options.track },
     { key: "company", label: "Company", opts: options.company },
     { key: "format", label: "Format", opts: options.format },
     { key: "kol", label: "KOL", opts: options.kol },
     { key: "asset", label: "Asset", opts: options.asset },
   ];
+
 
 
   // group agenda by day, preserving insertion order within each day
@@ -198,31 +221,60 @@ function Planner() {
         {/* Available sessions */}
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2">
-            {filterConfig.map(({ key, label, opts }) => (
-              <Select
-                key={key}
-                value={filters[key]}
-                onValueChange={(v) => setFilter(key, v)}
-              >
-                <SelectTrigger
-                  className={filters[key] !== "All" ? "border-primary/50" : undefined}
-                >
-                  <SelectValue placeholder={label}>
-                    <span className="truncate">
-                      {filters[key] === "All" ? label : filters[key]}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {opts.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o === "All" ? `All ${label.toLowerCase()}s` : o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ))}
+            {filterConfig.map(({ key, label, opts }) => {
+              const selected = filters[key];
+              return (
+                <DropdownMenu key={key}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={
+                        "h-9 justify-between gap-1 font-normal" +
+                        (selected.length ? " border-primary/50" : "")
+                      }
+                    >
+                      <span className="truncate">
+                        {label}
+                        {selected.length > 0 && (
+                          <span className="ml-1 text-primary">({selected.length})</span>
+                        )}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-72 w-56 overflow-y-auto">
+                    <DropdownMenuLabel className="flex items-center justify-between">
+                      {label}
+                      {selected.length > 0 && (
+                        <button
+                          className="text-xs font-normal text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            clearFilter(key);
+                          }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {opts.map((o) => (
+                      <DropdownMenuCheckboxItem
+                        key={o}
+                        checked={selected.includes(o)}
+                        onCheckedChange={() => toggleFilter(key, o)}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {o}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })}
           </div>
+
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
