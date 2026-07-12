@@ -14,12 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { sessions as allSessions, delegates } from "@/data/mock";
-import { CalendarDown, CalendarClock, UserPlus, TriangleAlert } from "lucide-react";
-import { CalendarDays } from "lucide-react";
+import { CalendarClock, UserPlus, TriangleAlert, CalendarDays } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
   head: () => ({ meta: [{ title: "Session Planner — VERA 2.0" }] }),
-  component: Planner;
+  component: Planner,
 });
 
 function Planner() {
