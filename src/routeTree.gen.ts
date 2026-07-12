@@ -19,6 +19,7 @@ import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 import { Route as PostSynthesisRouteImport } from './routes/post.synthesis'
 import { Route as PostSummariesRouteImport } from './routes/post.summaries'
 import { Route as PostEndpointsRouteImport } from './routes/post.endpoints'
+import { Route as PostDeliverablesRouteImport } from './routes/post.deliverables'
 import { Route as LiveKiqRouteImport } from './routes/live.kiq'
 import { Route as LiveInsightsRouteImport } from './routes/live.insights'
 import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
@@ -75,6 +76,11 @@ const PostEndpointsRoute = PostEndpointsRouteImport.update({
   path: '/post/endpoints',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostDeliverablesRoute = PostDeliverablesRouteImport.update({
+  id: '/post/deliverables',
+  path: '/post/deliverables',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveKiqRoute = LiveKiqRouteImport.update({
   id: '/live/kiq',
   path: '/live/kiq',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/live/kiq': typeof LiveKiqRoute
+  '/post/deliverables': typeof PostDeliverablesRoute
   '/post/endpoints': typeof PostEndpointsRoute
   '/post/summaries': typeof PostSummariesRoute
   '/post/synthesis': typeof PostSynthesisRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/live/kiq': typeof LiveKiqRoute
+  '/post/deliverables': typeof PostDeliverablesRoute
   '/post/endpoints': typeof PostEndpointsRoute
   '/post/summaries': typeof PostSummariesRoute
   '/post/synthesis': typeof PostSynthesisRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/live/kiq': typeof LiveKiqRoute
+  '/post/deliverables': typeof PostDeliverablesRoute
   '/post/endpoints': typeof PostEndpointsRoute
   '/post/summaries': typeof PostSummariesRoute
   '/post/synthesis': typeof PostSynthesisRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/live/dashboard'
     | '/live/insights'
     | '/live/kiq'
+    | '/post/deliverables'
     | '/post/endpoints'
     | '/post/summaries'
     | '/post/synthesis'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/live/dashboard'
     | '/live/insights'
     | '/live/kiq'
+    | '/post/deliverables'
     | '/post/endpoints'
     | '/post/summaries'
     | '/post/synthesis'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/live/dashboard'
     | '/live/insights'
     | '/live/kiq'
+    | '/post/deliverables'
     | '/post/endpoints'
     | '/post/summaries'
     | '/post/synthesis'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   LiveDashboardRoute: typeof LiveDashboardRoute
   LiveInsightsRoute: typeof LiveInsightsRoute
   LiveKiqRoute: typeof LiveKiqRoute
+  PostDeliverablesRoute: typeof PostDeliverablesRoute
   PostEndpointsRoute: typeof PostEndpointsRoute
   PostSummariesRoute: typeof PostSummariesRoute
   PostSynthesisRoute: typeof PostSynthesisRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostEndpointsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/post/deliverables': {
+      id: '/post/deliverables'
+      path: '/post/deliverables'
+      fullPath: '/post/deliverables'
+      preLoaderRoute: typeof PostDeliverablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live/kiq': {
       id: '/live/kiq'
       path: '/live/kiq'
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveDashboardRoute: LiveDashboardRoute,
   LiveInsightsRoute: LiveInsightsRoute,
   LiveKiqRoute: LiveKiqRoute,
+  PostDeliverablesRoute: PostDeliverablesRoute,
   PostEndpointsRoute: PostEndpointsRoute,
   PostSummariesRoute: PostSummariesRoute,
   PostSynthesisRoute: PostSynthesisRoute,
