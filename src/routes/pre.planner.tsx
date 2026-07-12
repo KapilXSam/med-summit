@@ -68,15 +68,16 @@ function Planner() {
   const [editing, setEditing] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState({
-    track: "All",
-    company: "All",
-    format: "All",
-    kol: "All",
-    asset: "All",
+  type FilterKey = "track" | "company" | "format" | "kol" | "asset";
+  const [filters, setFilters] = useState<Record<FilterKey, string[]>>({
+    track: [],
+    company: [],
+    format: [],
+    kol: [],
+    asset: [],
   });
 
-  const uniq = (values: string[]) => ["All", ...[...new Set(values)].sort()];
+  const uniq = (values: string[]) => [...new Set(values)].sort();
   const options = useMemo(
     () => ({
       track: uniq(allSessions.map((s) => s.therapyArea)),
@@ -88,11 +89,23 @@ function Planner() {
     [],
   );
 
-  const setFilter = (key: keyof typeof filters, value: string) =>
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const toggleFilter = (key: FilterKey, value: string) =>
+    setFilters((prev) => {
+      const set = new Set(prev[key]);
+      set.has(value) ? set.delete(value) : set.add(value);
+      return { ...prev, [key]: [...set] };
+    });
+  const clearFilter = (key: FilterKey) =>
+    setFilters((prev) => ({ ...prev, [key]: [] }));
   const resetFilters = () =>
-    setFilters({ track: "All", company: "All", format: "All", kol: "All", asset: "All" });
-  const activeFilterCount = Object.values(filters).filter((v) => v !== "All").length;
+    setFilters({ track: [], company: [], format: [], kol: [], asset: [] });
+  const activeFilterCount = Object.values(filters).reduce(
+    (n, arr) => n + arr.length,
+    0,
+  );
+
+  const matches = (selected: string[], value: string) =>
+    selected.length === 0 || selected.includes(value);
 
   const inAgenda = useMemo(() => new Set(agenda.map((a) => a.id)), [agenda]);
 
@@ -101,11 +114,11 @@ function Planner() {
       allSessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
-          (filters.track === "All" || s.therapyArea === filters.track) &&
-          (filters.company === "All" || s.affiliation === filters.company) &&
-          (filters.format === "All" || s.phase === filters.format) &&
-          (filters.kol === "All" || s.authors === filters.kol) &&
-          (filters.asset === "All" || s.asset === filters.asset) &&
+          matches(filters.track, s.therapyArea) &&
+          matches(filters.company, s.affiliation) &&
+          matches(filters.format, s.phase) &&
+          matches(filters.kol, s.authors) &&
+          matches(filters.asset, s.asset) &&
           (query === "" ||
             s.title.toLowerCase().includes(query.toLowerCase()) ||
             s.room.toLowerCase().includes(query.toLowerCase())),
@@ -113,13 +126,14 @@ function Planner() {
     [inAgenda, filters, query],
   );
 
-  const filterConfig: { key: keyof typeof filters; label: string; opts: string[] }[] = [
+  const filterConfig: { key: FilterKey; label: string; opts: string[] }[] = [
     { key: "track", label: "Track", opts: options.track },
     { key: "company", label: "Company", opts: options.company },
     { key: "format", label: "Format", opts: options.format },
     { key: "kol", label: "KOL", opts: options.kol },
     { key: "asset", label: "Asset", opts: options.asset },
   ];
+
 
 
   // group agenda by day, preserving insertion order within each day
