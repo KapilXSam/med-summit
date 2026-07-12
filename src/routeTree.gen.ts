@@ -9,38 +9,244 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PrePlannerRouteImport } from './routes/pre.planner'
+import { Route as PreLbaRouteImport } from './routes/pre.lba'
+import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
+import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
+import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
+import { Route as PostSynthesisRouteImport } from './routes/post.synthesis'
+import { Route as PostSummariesRouteImport } from './routes/post.summaries'
+import { Route as PostEndpointsRouteImport } from './routes/post.endpoints'
+import { Route as PostDeliverablesRouteImport } from './routes/post.deliverables'
+import { Route as LiveKiqRouteImport } from './routes/live.kiq'
+import { Route as LiveInsightsRouteImport } from './routes/live.insights'
+import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
+import { Route as LiveCollabRouteImport } from './routes/live.collab'
+import { Route as LiveCaptureRouteImport } from './routes/live.capture'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrePlannerRoute = PrePlannerRouteImport.update({
+  id: '/pre/planner',
+  path: '/pre/planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreLbaRoute = PreLbaRouteImport.update({
+  id: '/pre/lba',
+  path: '/pre/lba',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreKitkiqRoute = PreKitkiqRouteImport.update({
+  id: '/pre/kitkiq',
+  path: '/pre/kitkiq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreHypothesesRoute = PreHypothesesRouteImport.update({
+  id: '/pre/hypotheses',
+  path: '/pre/hypotheses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreExtractionRoute = PreExtractionRouteImport.update({
+  id: '/pre/extraction',
+  path: '/pre/extraction',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostSynthesisRoute = PostSynthesisRouteImport.update({
+  id: '/post/synthesis',
+  path: '/post/synthesis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostSummariesRoute = PostSummariesRouteImport.update({
+  id: '/post/summaries',
+  path: '/post/summaries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostEndpointsRoute = PostEndpointsRouteImport.update({
+  id: '/post/endpoints',
+  path: '/post/endpoints',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostDeliverablesRoute = PostDeliverablesRouteImport.update({
+  id: '/post/deliverables',
+  path: '/post/deliverables',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveKiqRoute = LiveKiqRouteImport.update({
+  id: '/live/kiq',
+  path: '/live/kiq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveInsightsRoute = LiveInsightsRouteImport.update({
+  id: '/live/insights',
+  path: '/live/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveDashboardRoute = LiveDashboardRouteImport.update({
+  id: '/live/dashboard',
+  path: '/live/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveCollabRoute = LiveCollabRouteImport.update({
+  id: '/live/collab',
+  path: '/live/collab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveCaptureRoute = LiveCaptureRouteImport.update({
+  id: '/live/capture',
+  path: '/live/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/live/capture': typeof LiveCaptureRoute
+  '/live/collab': typeof LiveCollabRoute
+  '/live/dashboard': typeof LiveDashboardRoute
+  '/live/insights': typeof LiveInsightsRoute
+  '/live/kiq': typeof LiveKiqRoute
+  '/post/deliverables': typeof PostDeliverablesRoute
+  '/post/endpoints': typeof PostEndpointsRoute
+  '/post/summaries': typeof PostSummariesRoute
+  '/post/synthesis': typeof PostSynthesisRoute
+  '/pre/extraction': typeof PreExtractionRoute
+  '/pre/hypotheses': typeof PreHypothesesRoute
+  '/pre/kitkiq': typeof PreKitkiqRoute
+  '/pre/lba': typeof PreLbaRoute
+  '/pre/planner': typeof PrePlannerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/live/capture': typeof LiveCaptureRoute
+  '/live/collab': typeof LiveCollabRoute
+  '/live/dashboard': typeof LiveDashboardRoute
+  '/live/insights': typeof LiveInsightsRoute
+  '/live/kiq': typeof LiveKiqRoute
+  '/post/deliverables': typeof PostDeliverablesRoute
+  '/post/endpoints': typeof PostEndpointsRoute
+  '/post/summaries': typeof PostSummariesRoute
+  '/post/synthesis': typeof PostSynthesisRoute
+  '/pre/extraction': typeof PreExtractionRoute
+  '/pre/hypotheses': typeof PreHypothesesRoute
+  '/pre/kitkiq': typeof PreKitkiqRoute
+  '/pre/lba': typeof PreLbaRoute
+  '/pre/planner': typeof PrePlannerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/live/capture': typeof LiveCaptureRoute
+  '/live/collab': typeof LiveCollabRoute
+  '/live/dashboard': typeof LiveDashboardRoute
+  '/live/insights': typeof LiveInsightsRoute
+  '/live/kiq': typeof LiveKiqRoute
+  '/post/deliverables': typeof PostDeliverablesRoute
+  '/post/endpoints': typeof PostEndpointsRoute
+  '/post/summaries': typeof PostSummariesRoute
+  '/post/synthesis': typeof PostSynthesisRoute
+  '/pre/extraction': typeof PreExtractionRoute
+  '/pre/hypotheses': typeof PreHypothesesRoute
+  '/pre/kitkiq': typeof PreKitkiqRoute
+  '/pre/lba': typeof PreLbaRoute
+  '/pre/planner': typeof PrePlannerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/live/capture'
+    | '/live/collab'
+    | '/live/dashboard'
+    | '/live/insights'
+    | '/live/kiq'
+    | '/post/deliverables'
+    | '/post/endpoints'
+    | '/post/summaries'
+    | '/post/synthesis'
+    | '/pre/extraction'
+    | '/pre/hypotheses'
+    | '/pre/kitkiq'
+    | '/pre/lba'
+    | '/pre/planner'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/live/capture'
+    | '/live/collab'
+    | '/live/dashboard'
+    | '/live/insights'
+    | '/live/kiq'
+    | '/post/deliverables'
+    | '/post/endpoints'
+    | '/post/summaries'
+    | '/post/synthesis'
+    | '/pre/extraction'
+    | '/pre/hypotheses'
+    | '/pre/kitkiq'
+    | '/pre/lba'
+    | '/pre/planner'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/live/capture'
+    | '/live/collab'
+    | '/live/dashboard'
+    | '/live/insights'
+    | '/live/kiq'
+    | '/post/deliverables'
+    | '/post/endpoints'
+    | '/post/summaries'
+    | '/post/synthesis'
+    | '/pre/extraction'
+    | '/pre/hypotheses'
+    | '/pre/kitkiq'
+    | '/pre/lba'
+    | '/pre/planner'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
+  LiveCaptureRoute: typeof LiveCaptureRoute
+  LiveCollabRoute: typeof LiveCollabRoute
+  LiveDashboardRoute: typeof LiveDashboardRoute
+  LiveInsightsRoute: typeof LiveInsightsRoute
+  LiveKiqRoute: typeof LiveKiqRoute
+  PostDeliverablesRoute: typeof PostDeliverablesRoute
+  PostEndpointsRoute: typeof PostEndpointsRoute
+  PostSummariesRoute: typeof PostSummariesRoute
+  PostSynthesisRoute: typeof PostSynthesisRoute
+  PreExtractionRoute: typeof PreExtractionRoute
+  PreHypothesesRoute: typeof PreHypothesesRoute
+  PreKitkiqRoute: typeof PreKitkiqRoute
+  PreLbaRoute: typeof PreLbaRoute
+  PrePlannerRoute: typeof PrePlannerRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +254,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pre/planner': {
+      id: '/pre/planner'
+      path: '/pre/planner'
+      fullPath: '/pre/planner'
+      preLoaderRoute: typeof PrePlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pre/lba': {
+      id: '/pre/lba'
+      path: '/pre/lba'
+      fullPath: '/pre/lba'
+      preLoaderRoute: typeof PreLbaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pre/kitkiq': {
+      id: '/pre/kitkiq'
+      path: '/pre/kitkiq'
+      fullPath: '/pre/kitkiq'
+      preLoaderRoute: typeof PreKitkiqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pre/hypotheses': {
+      id: '/pre/hypotheses'
+      path: '/pre/hypotheses'
+      fullPath: '/pre/hypotheses'
+      preLoaderRoute: typeof PreHypothesesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pre/extraction': {
+      id: '/pre/extraction'
+      path: '/pre/extraction'
+      fullPath: '/pre/extraction'
+      preLoaderRoute: typeof PreExtractionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/synthesis': {
+      id: '/post/synthesis'
+      path: '/post/synthesis'
+      fullPath: '/post/synthesis'
+      preLoaderRoute: typeof PostSynthesisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/summaries': {
+      id: '/post/summaries'
+      path: '/post/summaries'
+      fullPath: '/post/summaries'
+      preLoaderRoute: typeof PostSummariesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/endpoints': {
+      id: '/post/endpoints'
+      path: '/post/endpoints'
+      fullPath: '/post/endpoints'
+      preLoaderRoute: typeof PostEndpointsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/deliverables': {
+      id: '/post/deliverables'
+      path: '/post/deliverables'
+      fullPath: '/post/deliverables'
+      preLoaderRoute: typeof PostDeliverablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/kiq': {
+      id: '/live/kiq'
+      path: '/live/kiq'
+      fullPath: '/live/kiq'
+      preLoaderRoute: typeof LiveKiqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/insights': {
+      id: '/live/insights'
+      path: '/live/insights'
+      fullPath: '/live/insights'
+      preLoaderRoute: typeof LiveInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/dashboard': {
+      id: '/live/dashboard'
+      path: '/live/dashboard'
+      fullPath: '/live/dashboard'
+      preLoaderRoute: typeof LiveDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/collab': {
+      id: '/live/collab'
+      path: '/live/collab'
+      fullPath: '/live/collab'
+      preLoaderRoute: typeof LiveCollabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/capture': {
+      id: '/live/capture'
+      path: '/live/capture'
+      fullPath: '/live/capture'
+      preLoaderRoute: typeof LiveCaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
+  LiveCaptureRoute: LiveCaptureRoute,
+  LiveCollabRoute: LiveCollabRoute,
+  LiveDashboardRoute: LiveDashboardRoute,
+  LiveInsightsRoute: LiveInsightsRoute,
+  LiveKiqRoute: LiveKiqRoute,
+  PostDeliverablesRoute: PostDeliverablesRoute,
+  PostEndpointsRoute: PostEndpointsRoute,
+  PostSummariesRoute: PostSummariesRoute,
+  PostSynthesisRoute: PostSynthesisRoute,
+  PreExtractionRoute: PreExtractionRoute,
+  PreHypothesesRoute: PreHypothesesRoute,
+  PreKitkiqRoute: PreKitkiqRoute,
+  PreLbaRoute: PreLbaRoute,
+  PrePlannerRoute: PrePlannerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
