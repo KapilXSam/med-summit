@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfidenceBadge, SourceChip } from "@/components/attribution";
-import { posters } from "@/data/mock";
+import { usePosters } from "@/lib/hooks";
 import { Camera, Crop, Loader2, Mic, ScanText, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/live/capture")({
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/live/capture")({
 type Stage = "idle" | "enhancing" | "ocr" | "done";
 
 function Capture() {
+  const { data: posters = [] } = usePosters();
   const [stage, setStage] = useState<Stage>("idle");
   const example = posters[0];
 
@@ -83,7 +84,7 @@ function Capture() {
             </div>
           )}
 
-          {stage === "done" && (
+          {stage === "done" && example && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>

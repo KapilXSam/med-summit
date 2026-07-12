@@ -5,7 +5,7 @@ import { PageHeader, StubNotice } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { insights } from "@/data/mock";
+import { useInsights } from "@/lib/hooks";
 import { ExtractionMark } from "@/components/attribution";
 import { Clock, FileText, FileType2, Presentation, Check } from "lucide-react";
 
@@ -36,6 +36,7 @@ const tiers = [
 ];
 
 function Deliverables() {
+  const { data: insights = [] } = useInsights();
   const [tier, setTier] = useState("exec-2");
   const selected = tiers.find((t) => t.id === tier)!;
   const preview = insights.filter((i) => !i.duplicateOf).slice(0, selected.bullets);
