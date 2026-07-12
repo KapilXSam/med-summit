@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrePlannerRouteImport } from './routes/pre.planner'
+import { Route as PreLbaRouteImport } from './routes/pre.lba'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -29,6 +30,11 @@ const PrePlannerRoute = PrePlannerRouteImport.update({
   path: '/pre/planner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreLbaRoute = PreLbaRouteImport.update({
+  id: '/pre/lba',
+  path: '/pre/lba',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreExtractionRoute = PreExtractionRouteImport.update({
   id: '/pre/extraction',
   path: '/pre/extraction',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,33 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/pre/extraction': typeof PreExtractionRoute
+  '/pre/lba': typeof PreLbaRoute
   '/pre/planner': typeof PrePlannerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/pre/extraction' | '/pre/planner'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/pre/extraction'
+    | '/pre/lba'
+    | '/pre/planner'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/pre/extraction' | '/pre/planner'
-  id: '__root__' | '/' | '/dashboard' | '/pre/extraction' | '/pre/planner'
+  to: '/' | '/dashboard' | '/pre/extraction' | '/pre/lba' | '/pre/planner'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/pre/extraction'
+    | '/pre/lba'
+    | '/pre/planner'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   PreExtractionRoute: typeof PreExtractionRoute
+  PreLbaRoute: typeof PreLbaRoute
   PrePlannerRoute: typeof PrePlannerRoute
 }
 
@@ -92,6 +113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrePlannerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pre/lba': {
+      id: '/pre/lba'
+      path: '/pre/lba'
+      fullPath: '/pre/lba'
+      preLoaderRoute: typeof PreLbaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pre/extraction': {
       id: '/pre/extraction'
       path: '/pre/extraction'
@@ -106,6 +134,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   PreExtractionRoute: PreExtractionRoute,
+  PreLbaRoute: PreLbaRoute,
   PrePlannerRoute: PrePlannerRoute,
 }
 export const routeTree = rootRouteImport
