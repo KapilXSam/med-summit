@@ -16,6 +16,7 @@ import { Route as PreLbaRouteImport } from './routes/pre.lba'
 import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
 import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
+import { Route as LiveKiqRouteImport } from './routes/live.kiq'
 import { Route as LiveInsightsRouteImport } from './routes/live.insights'
 import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
 import { Route as LiveCollabRouteImport } from './routes/live.collab'
@@ -56,6 +57,11 @@ const PreExtractionRoute = PreExtractionRouteImport.update({
   path: '/pre/extraction',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveKiqRoute = LiveKiqRouteImport.update({
+  id: '/live/kiq',
+  path: '/live/kiq',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveInsightsRoute = LiveInsightsRouteImport.update({
   id: '/live/insights',
   path: '/live/insights',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
+  '/live/kiq': typeof LiveKiqRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
+  '/live/kiq': typeof LiveKiqRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
+  '/live/kiq': typeof LiveKiqRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/live/collab'
     | '/live/dashboard'
     | '/live/insights'
+    | '/live/kiq'
     | '/pre/extraction'
     | '/pre/hypotheses'
     | '/pre/kitkiq'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/live/collab'
     | '/live/dashboard'
     | '/live/insights'
+    | '/live/kiq'
     | '/pre/extraction'
     | '/pre/hypotheses'
     | '/pre/kitkiq'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/live/collab'
     | '/live/dashboard'
     | '/live/insights'
+    | '/live/kiq'
     | '/pre/extraction'
     | '/pre/hypotheses'
     | '/pre/kitkiq'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   LiveCollabRoute: typeof LiveCollabRoute
   LiveDashboardRoute: typeof LiveDashboardRoute
   LiveInsightsRoute: typeof LiveInsightsRoute
+  LiveKiqRoute: typeof LiveKiqRoute
   PreExtractionRoute: typeof PreExtractionRoute
   PreHypothesesRoute: typeof PreHypothesesRoute
   PreKitkiqRoute: typeof PreKitkiqRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreExtractionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live/kiq': {
+      id: '/live/kiq'
+      path: '/live/kiq'
+      fullPath: '/live/kiq'
+      preLoaderRoute: typeof LiveKiqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live/insights': {
       id: '/live/insights'
       path: '/live/insights'
@@ -262,6 +282,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveCollabRoute: LiveCollabRoute,
   LiveDashboardRoute: LiveDashboardRoute,
   LiveInsightsRoute: LiveInsightsRoute,
+  LiveKiqRoute: LiveKiqRoute,
   PreExtractionRoute: PreExtractionRoute,
   PreHypothesesRoute: PreHypothesesRoute,
   PreKitkiqRoute: PreKitkiqRoute,
