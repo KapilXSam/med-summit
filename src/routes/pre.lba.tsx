@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, StubNotice } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { lbaAlerts } from "@/data/mock";
+import { useLbaAlerts } from "@/lib/hooks";
 import { BellRing, Clock, Radar } from "lucide-react";
 
 export const Route = createFileRoute("/pre/lba")({
@@ -11,6 +11,7 @@ export const Route = createFileRoute("/pre/lba")({
 });
 
 function LbaMonitor() {
+  const { data: lbaAlerts = [] } = useLbaAlerts();
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
