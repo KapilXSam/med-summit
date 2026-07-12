@@ -212,31 +212,60 @@ function Planner() {
         {/* Available sessions */}
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2">
-            {filterConfig.map(({ key, label, opts }) => (
-              <Select
-                key={key}
-                value={filters[key]}
-                onValueChange={(v) => setFilter(key, v)}
-              >
-                <SelectTrigger
-                  className={filters[key] !== "All" ? "border-primary/50" : undefined}
-                >
-                  <SelectValue placeholder={label}>
-                    <span className="truncate">
-                      {filters[key] === "All" ? label : filters[key]}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {opts.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o === "All" ? `All ${label.toLowerCase()}s` : o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ))}
+            {filterConfig.map(({ key, label, opts }) => {
+              const selected = filters[key];
+              return (
+                <DropdownMenu key={key}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={
+                        "h-9 justify-between gap-1 font-normal" +
+                        (selected.length ? " border-primary/50" : "")
+                      }
+                    >
+                      <span className="truncate">
+                        {label}
+                        {selected.length > 0 && (
+                          <span className="ml-1 text-primary">({selected.length})</span>
+                        )}
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-72 w-56 overflow-y-auto">
+                    <DropdownMenuLabel className="flex items-center justify-between">
+                      {label}
+                      {selected.length > 0 && (
+                        <button
+                          className="text-xs font-normal text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            clearFilter(key);
+                          }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {opts.map((o) => (
+                      <DropdownMenuCheckboxItem
+                        key={o}
+                        checked={selected.includes(o)}
+                        onCheckedChange={() => toggleFilter(key, o)}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {o}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })}
           </div>
+
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
