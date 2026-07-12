@@ -18,6 +18,7 @@ import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 import { Route as LiveInsightsRouteImport } from './routes/live.insights'
 import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
+import { Route as LiveCollabRouteImport } from './routes/live.collab'
 import { Route as LiveCaptureRouteImport } from './routes/live.capture'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -65,6 +66,11 @@ const LiveDashboardRoute = LiveDashboardRouteImport.update({
   path: '/live/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveCollabRoute = LiveCollabRouteImport.update({
+  id: '/live/collab',
+  path: '/live/collab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveCaptureRoute = LiveCaptureRouteImport.update({
   id: '/live/capture',
   path: '/live/capture',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live/capture': typeof LiveCaptureRoute
+  '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/pre/extraction': typeof PreExtractionRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live/capture': typeof LiveCaptureRoute
+  '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/pre/extraction': typeof PreExtractionRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live/capture': typeof LiveCaptureRoute
+  '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/pre/extraction': typeof PreExtractionRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live/capture'
+    | '/live/collab'
     | '/live/dashboard'
     | '/live/insights'
     | '/pre/extraction'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live/capture'
+    | '/live/collab'
     | '/live/dashboard'
     | '/live/insights'
     | '/pre/extraction'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live/capture'
+    | '/live/collab'
     | '/live/dashboard'
     | '/live/insights'
     | '/pre/extraction'
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LiveCaptureRoute: typeof LiveCaptureRoute
+  LiveCollabRoute: typeof LiveCollabRoute
   LiveDashboardRoute: typeof LiveDashboardRoute
   LiveInsightsRoute: typeof LiveInsightsRoute
   PreExtractionRoute: typeof PreExtractionRoute
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live/collab': {
+      id: '/live/collab'
+      path: '/live/collab'
+      fullPath: '/live/collab'
+      preLoaderRoute: typeof LiveCollabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live/capture': {
       id: '/live/capture'
       path: '/live/capture'
@@ -239,6 +259,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LiveCaptureRoute: LiveCaptureRoute,
+  LiveCollabRoute: LiveCollabRoute,
   LiveDashboardRoute: LiveDashboardRoute,
   LiveInsightsRoute: LiveInsightsRoute,
   PreExtractionRoute: PreExtractionRoute,
