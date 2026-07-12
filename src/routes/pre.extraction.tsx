@@ -197,14 +197,27 @@ function Extraction() {
         description="Ingest a live conference agenda URL, extract every session field with per-field confidence scoring, and edit or re-run low-confidence values."
         actions={
           rows.length > 0 ? (
-            <Button variant="secondary" onClick={handleIngest} disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-              Re-run extraction
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={handleIngest} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                Re-run extraction
+              </Button>
+              <Button
+                onClick={() => saveMut.mutate(rows)}
+                disabled={saveMut.isPending}
+              >
+                {saveMut.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save {rows.length} to {conference.acronym}
+              </Button>
+            </div>
           ) : undefined
         }
       />
