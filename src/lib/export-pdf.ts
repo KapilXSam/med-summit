@@ -82,7 +82,7 @@ export function exportExecutiveSummaryPdf({
   // ---- Intro ----
   doc.setTextColor(51, 65, 85);
   doc.setFontSize(10);
-  const introLines = doc.splitTextToSize(tierDescription, contentWidth);
+  const introLines = doc.splitTextToSize(ascii(tierDescription), contentWidth);
   doc.text(introLines, marginX, y);
   y += introLines.length * 13 + 16;
 
