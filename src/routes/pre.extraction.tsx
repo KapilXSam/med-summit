@@ -267,7 +267,7 @@ function Extraction() {
                       <Fragment key={s.id}>
 
                         <TableRow
-                          key={s.id}
+
                           className={
                             lowFields.length > 0
                               ? "cursor-pointer bg-destructive/5"
