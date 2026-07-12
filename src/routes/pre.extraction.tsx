@@ -17,15 +17,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ConfidenceBadge } from "@/components/attribution";
 import {
   ingestConferenceUrl,
   retryFieldExtraction,
 } from "@/lib/extraction.functions";
-import {
-  EDITABLE_FIELDS,
-  type ExtractedSession,
-} from "@/lib/extraction-types";
+import { EDITABLE_FIELDS, type ExtractedSession } from "@/lib/extraction-types";
 import {
   Search,
   Wand2,
@@ -36,6 +40,10 @@ import {
   ChevronRight,
   RotateCw,
   Check,
+  Sparkles,
+  ShieldCheck,
+  Gauge,
+  ListChecks,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({
@@ -120,25 +128,33 @@ function Extraction() {
     }
   }
 
+  const lowFieldsOf = (s: ExtractedSession) =>
+    EDITABLE_FIELDS.filter(
+      (f) => (s.fieldConfidence[f.key as string] ?? 100) < threshold,
+    );
+
   const filtered = useMemo(
     () =>
       rows.filter((s) => {
-        const low = EDITABLE_FIELDS.some(
-          (f) => (s.fieldConfidence[f.key as string] ?? 100) < threshold,
-        );
-        if (onlyFlagged && !low) return false;
+        if (onlyFlagged && lowFieldsOf(s).length === 0) return false;
         if (query && !s.title.toLowerCase().includes(query.toLowerCase()))
           return false;
         return true;
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [rows, query, onlyFlagged, threshold],
   );
 
-  const flaggedCount = rows.filter((s) =>
-    EDITABLE_FIELDS.some(
-      (f) => (s.fieldConfidence[f.key as string] ?? 100) < threshold,
-    ),
-  ).length;
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const flagged = rows.filter((s) => lowFieldsOf(s).length > 0).length;
+    const avg = total
+      ? Math.round(rows.reduce((a, s) => a + s.confidence, 0) / total)
+      : 0;
+    const clean = total - flagged;
+    return { total, flagged, clean, avg };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, threshold]);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -160,16 +176,33 @@ function Extraction() {
         }
       />
 
-      {/* Ingestion controls */}
-      <Card className="mb-4">
-        <CardContent className="space-y-4 p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="relative flex-1 min-w-[260px]">
-              <Label className="mb-1.5 block text-xs text-muted-foreground">
+      {/* Ingestion command panel */}
+      <Card className="mb-6 overflow-hidden border-primary/20">
+        <div className="flex items-center gap-2.5 border-b bg-gradient-to-r from-primary/10 via-accent/40 to-transparent px-4 py-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight">Live agenda ingestion</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Fetches the page in real time and extracts structured sessions with AI.
+            </p>
+          </div>
+        </div>
+        <CardContent className="space-y-5 p-4">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <div className="relative min-w-0">
+              <Label
+                htmlFor="agenda-url"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
                 Conference agenda URL
               </Label>
-              <Link2 className="absolute left-2.5 top-[34px] h-4 w-4 text-muted-foreground" />
+              <Link2 className="pointer-events-none absolute left-2.5 top-[34px] h-4 w-4 text-muted-foreground" />
               <Input
+                id="agenda-url"
+                type="url"
+                inputMode="url"
                 placeholder="https://conference.org/2025/agenda"
                 className="pl-8"
                 value={url}
@@ -177,25 +210,28 @@ function Extraction() {
                 onKeyDown={(e) => e.key === "Enter" && handleIngest()}
               />
             </div>
-            <Button onClick={handleIngest} disabled={loading}>
+            <Button onClick={handleIngest} disabled={loading} className="shrink-0">
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" /> Ingesting…
                 </>
               ) : (
                 <>
-                  <Wand2 className="h-4 w-4" /> Ingest & extract
+                  <Wand2 className="h-4 w-4" /> Ingest &amp; extract
                 </>
               )}
             </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="min-w-[240px] flex-1">
-              <Label className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="grid gap-4 sm:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] sm:items-center">
+            <div>
+              <Label className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
                 <span>Confidence threshold</span>
-                <span className="font-mono text-foreground">{threshold}%</span>
+                <span className="font-mono tabular-nums text-foreground">
+                  {threshold}%
+                </span>
               </Label>
               <Slider
+                aria-label="Confidence threshold"
                 value={[threshold]}
                 min={40}
                 max={95}
@@ -203,35 +239,92 @@ function Extraction() {
                 onValueChange={(v) => setThreshold(v[0])}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Fields below <span className="font-medium text-foreground">{threshold}%</span>{" "}
-              are flagged for review. No values are inferred — empty means the field
-              was not stated in the source.
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Fields below{" "}
+              <span className="font-medium text-foreground">{threshold}%</span> are
+              flagged for analyst review. No values are inferred — an empty field means
+              it was not stated in the source page.
             </p>
           </div>
         </CardContent>
       </Card>
 
+      {/* Loading skeleton */}
+      {loading && rows.length === 0 && (
+        <div className="space-y-3" aria-busy="true" aria-label="Extracting sessions">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Fetching page and extracting sessions…
+          </div>
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-4 w-4 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Empty state */}
       {rows.length === 0 && !loading && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-            <Link2 className="h-8 w-8 text-muted-foreground" />
-            <p className="font-medium">No agenda ingested yet</p>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-primary">
+              <Link2 className="h-6 w-6" />
+            </span>
+            <p className="text-base font-semibold">No agenda ingested yet</p>
             <p className="max-w-md text-sm text-muted-foreground">
-              Paste a real conference agenda URL above. The page is fetched live and
-              AI extracts structured sessions with per-field confidence scoring.
+              Paste a real conference agenda URL above. The page is fetched live and AI
+              extracts structured sessions with per-field confidence scoring.
             </p>
           </CardContent>
         </Card>
       )}
 
       {rows.length > 0 && (
-        <>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className="animate-fade-in space-y-5">
+          {/* Summary strip */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              icon={<ListChecks className="h-4 w-4" />}
+              label="Sessions extracted"
+              value={stats.total}
+            />
+            <StatCard
+              icon={<ShieldCheck className="h-4 w-4" />}
+              label="Above threshold"
+              value={stats.clean}
+              tone="positive"
+            />
+            <StatCard
+              icon={<AlertTriangle className="h-4 w-4" />}
+              label="Flagged for review"
+              value={stats.flagged}
+              tone={stats.flagged > 0 ? "warning" : "default"}
+            />
+            <StatCard
+              icon={<Gauge className="h-4 w-4" />}
+              label="Avg. confidence"
+              value={`${stats.avg}%`}
+              progress={stats.avg}
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search sessions…"
+                aria-label="Search sessions"
                 className="pl-8"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -240,8 +333,9 @@ function Extraction() {
             <Button
               variant={onlyFlagged ? "default" : "outline"}
               onClick={() => setOnlyFlagged((v) => !v)}
+              aria-pressed={onlyFlagged}
             >
-              <AlertTriangle className="h-4 w-4" /> Flagged ({flaggedCount})
+              <AlertTriangle className="h-4 w-4" /> Flagged ({stats.flagged})
             </Button>
           </div>
 
@@ -260,18 +354,15 @@ function Extraction() {
                 <TableBody>
                   {filtered.map((s) => {
                     const isOpen = expanded[s.id];
-                    const lowFields = EDITABLE_FIELDS.filter(
-                      (f) => (s.fieldConfidence[f.key as string] ?? 100) < threshold,
-                    );
+                    const lowFields = lowFieldsOf(s);
                     return (
                       <Fragment key={s.id}>
-
                         <TableRow
-
                           className={
-                            lowFields.length > 0
-                              ? "cursor-pointer bg-destructive/5"
-                              : "cursor-pointer"
+                            "cursor-pointer transition-colors" +
+                            (lowFields.length > 0
+                              ? " bg-destructive/[0.04] hover:bg-destructive/[0.07]"
+                              : "")
                           }
                           onClick={() =>
                             setExpanded((p) => ({ ...p, [s.id]: !p[s.id] }))
@@ -292,12 +383,12 @@ function Extraction() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="truncate text-xs text-muted-foreground">
                               {[s.authors, s.affiliation].filter(Boolean).join(" · ") ||
                                 "—"}
                             </div>
                             {lowFields.length > 0 && (
-                              <div className="mt-1 flex items-center gap-1 text-[11px] text-destructive">
+                              <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
                                 <AlertTriangle className="h-3 w-3" />
                                 {lowFields.length} low-confidence field
                                 {lowFields.length > 1 ? "s" : ""}
@@ -309,7 +400,7 @@ function Extraction() {
                             <br />
                             {[s.time, s.room].filter(Boolean).join(" · ") || "—"}
                           </TableCell>
-                          <TableCell className="hidden font-mono text-xs lg:table-cell">
+                          <TableCell className="hidden font-mono text-xs tabular-nums lg:table-cell">
                             {s.trialId || "—"}
                           </TableCell>
                           <TableCell className="text-right">
@@ -317,7 +408,7 @@ function Extraction() {
                           </TableCell>
                         </TableRow>
                         {isOpen && (
-                          <TableRow key={`${s.id}-edit`} className="bg-muted/30">
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
                             <TableCell />
                             <TableCell colSpan={4} className="py-4">
                               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -329,14 +420,18 @@ function Extraction() {
                                   return (
                                     <div key={f.key} className="space-y-1">
                                       <div className="flex items-center justify-between">
-                                        <Label className="text-xs text-muted-foreground">
+                                        <Label
+                                          htmlFor={key}
+                                          className="text-xs text-muted-foreground"
+                                        >
                                           {f.label}
                                         </Label>
                                         <span
                                           className={
-                                            isLow
-                                              ? "text-[10px] font-medium text-destructive"
-                                              : "text-[10px] text-muted-foreground"
+                                            "text-[10px] font-medium tabular-nums " +
+                                            (isLow
+                                              ? "text-destructive"
+                                              : "text-muted-foreground")
                                           }
                                         >
                                           {conf}%
@@ -344,10 +439,9 @@ function Extraction() {
                                       </div>
                                       <div className="flex gap-1">
                                         <Input
-                                          value={
-                                            (s[f.key] as string) ?? ""
-                                          }
-                                          placeholder="—"
+                                          id={key}
+                                          value={(s[f.key] as string) ?? ""}
+                                          placeholder="Not stated in source"
                                           onChange={(e) =>
                                             updateField(
                                               s.id,
@@ -357,35 +451,43 @@ function Extraction() {
                                             )
                                           }
                                           className={
-                                            isLow
-                                              ? "h-8 border-destructive/50 bg-destructive/5 text-sm"
-                                              : "h-8 text-sm"
+                                            "h-8 text-sm " +
+                                            (isLow
+                                              ? "border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/40"
+                                              : "")
                                           }
                                         />
                                         {isLow && (
-                                          <Button
-                                            size="icon"
-                                            variant="outline"
-                                            className="h-8 w-8 shrink-0"
-                                            title="Re-run AI extraction for this field"
-                                            disabled={retrying === key}
-                                            onClick={() =>
-                                              handleRetry(s, f.key as string)
-                                            }
-                                          >
-                                            {retrying === key ? (
-                                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                            ) : (
-                                              <RotateCw className="h-3.5 w-3.5" />
-                                            )}
-                                          </Button>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                size="icon"
+                                                variant="outline"
+                                                className="h-8 w-8 shrink-0"
+                                                aria-label={`Re-run AI extraction for ${f.label}`}
+                                                disabled={retrying === key}
+                                                onClick={() =>
+                                                  handleRetry(s, f.key as string)
+                                                }
+                                              >
+                                                {retrying === key ? (
+                                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                  <RotateCw className="h-3.5 w-3.5" />
+                                                )}
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              Re-run AI extraction for this field
+                                            </TooltipContent>
+                                          </Tooltip>
                                         )}
                                       </div>
                                     </div>
                                   );
                                 })}
                               </div>
-                              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <Badge variant="secondary" className="text-[10px]">
                                   {s.therapyArea || "Unclassified"}
                                 </Badge>
@@ -395,7 +497,7 @@ function Extraction() {
                                   </Badge>
                                 )}
                                 {lowFields.length === 0 && (
-                                  <span className="ml-auto flex items-center gap-1 text-emerald-600">
+                                  <span className="ml-auto inline-flex items-center gap-1 font-medium text-emerald-600">
                                     <Check className="h-3.5 w-3.5" /> All fields above
                                     threshold
                                   </span>
@@ -405,20 +507,61 @@ function Extraction() {
                           </TableRow>
                         )}
                       </Fragment>
-
                     );
                   })}
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                        No sessions match your filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Showing {filtered.length} of {rows.length} extracted sessions from{" "}
-            <span className="font-mono">{sourceUrl}</span> · click a row to edit fields
-            · low-confidence fields can be re-run individually.
+            <span className="break-all font-mono">{sourceUrl}</span> · click a row to
+            edit fields · low-confidence fields can be re-run individually.
           </p>
-        </>
+        </div>
       )}
     </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  tone = "default",
+  progress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  tone?: "default" | "positive" | "warning";
+  progress?: number;
+}) {
+  const toneClass =
+    tone === "positive"
+      ? "text-emerald-600"
+      : tone === "warning"
+        ? "text-destructive"
+        : "text-primary";
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <span className={toneClass}>{icon}</span>
+          <span className="truncate">{label}</span>
+        </div>
+        <p className="mt-1.5 text-2xl font-semibold tabular-nums">{value}</p>
+        {progress != null && (
+          <Progress value={progress} className="mt-2 h-1.5" />
+        )}
+      </CardContent>
+    </Card>
   );
 }
