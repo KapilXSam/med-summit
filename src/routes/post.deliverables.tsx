@@ -61,12 +61,15 @@ function Deliverables() {
         title="Deliverable Generator"
         description="Three tiers of executive summary and a full report, exportable to Word, PowerPoint, and PDF — with full source attribution on every claim."
         actions={
-          <Badge variant="secondary" className="gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-emerald-600" /> First draft ready in 60 min
-          </Badge>
+          <Button size="sm" onClick={handleExportPdf}>
+            <Download className="h-4 w-4" /> Download PDF summary
+          </Button>
         }
       />
-      <StubNotice>Generation and export are simulated for this prototype.</StubNotice>
+      <StubNotice>
+        Word and PowerPoint export are simulated. PDF export generates a real,
+        downloadable executive summary with source attribution.
+      </StubNotice>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         {tiers.map((t) => (
