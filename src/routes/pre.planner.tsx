@@ -28,6 +28,7 @@ import {
   TriangleAlert,
   Clock,
   MapPin,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
