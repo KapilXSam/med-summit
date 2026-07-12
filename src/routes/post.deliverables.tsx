@@ -98,7 +98,6 @@ function Deliverables() {
             {[
               { label: "Word", icon: FileText },
               { label: "PowerPoint", icon: Presentation },
-              { label: "PDF", icon: FileType2 },
             ].map((f) => (
               <Button
                 key={f.label}
@@ -109,6 +108,9 @@ function Deliverables() {
                 <f.icon className="h-4 w-4" /> {f.label}
               </Button>
             ))}
+            <Button size="sm" onClick={handleExportPdf}>
+              <FileType2 className="h-4 w-4" /> PDF
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
