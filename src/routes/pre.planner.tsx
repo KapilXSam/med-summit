@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,7 +22,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { sessions as allSessions } from "@/data/mock";
+import { useApp } from "@/context/app-context";
+import {
+  fetchSessions,
+  fetchAgenda,
+  addAgendaItem,
+  removeAgendaItem,
+  updateAgendaItem,
+  reorderAgenda,
+  updateSession,
+  type AgendaRow,
+} from "@/lib/db";
 import type { Session } from "@/data/types";
 import {
   CalendarDays,
@@ -45,37 +56,63 @@ export const Route = createFileRoute("/pre/planner")({
   component: Planner,
 });
 
-const DAY_ORDER = ["Fri Oct 16", "Sat Oct 17", "Sun Oct 18", "Mon Oct 19"];
-
-interface AgendaItem {
-  id: string;
-  title: string;
-  day: string;
-  time: string;
-  room: string;
-  therapyArea: string;
-  conflict?: boolean;
-}
-
-function toAgendaItem(s: Session): AgendaItem {
-  return {
-    id: s.id,
-    title: s.title,
-    day: s.day,
-    time: s.time,
-    room: s.room,
-    therapyArea: s.therapyArea,
-    conflict: s.conflict,
-  };
-}
-
 function Planner() {
-  const [agenda, setAgenda] = useState<AgendaItem[]>(() =>
-    allSessions.slice(0, 8).map(toAgendaItem),
-  );
+  const { conference } = useApp();
+  const conferenceId = conference.id;
+  const qc = useQueryClient();
+
+  const { data: sessions = [] } = useQuery({
+    queryKey: ["sessions", conferenceId],
+    queryFn: () => fetchSessions(conferenceId),
+  });
+  const { data: agendaRows = [] } = useQuery({
+    queryKey: ["agenda", conferenceId],
+    queryFn: () => fetchAgenda(conferenceId),
+  });
+
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["agenda", conferenceId] });
+    qc.invalidateQueries({ queryKey: ["sessions", conferenceId] });
+  };
+
+  const addMut = useMutation({
+    mutationFn: (s: Session) =>
+      addAgendaItem(conferenceId, s.id, s.day, agendaRows.length),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Added to agenda");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const removeMut = useMutation({
+    mutationFn: (id: string) => removeAgendaItem(id),
+    onSuccess: invalidate,
+  });
+  const updItemMut = useMutation({
+    mutationFn: ({ id, day }: { id: string; day: string }) =>
+      updateAgendaItem(id, { day }),
+    onSuccess: invalidate,
+  });
+  const updSessionMut = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Session> }) =>
+      updateSession(id, patch),
+    onSuccess: invalidate,
+  });
+  const reorderMut = useMutation({
+    mutationFn: reorderAgenda,
+    onSuccess: invalidate,
+  });
+
+  // Day order derived from the conference's sessions (first-seen order).
+  const DAY_ORDER = useMemo(() => {
+    const seen: string[] = [];
+    for (const s of sessions) if (s.day && !seen.includes(s.day)) seen.push(s.day);
+    return seen;
+  }, [sessions]);
 
   type FilterKey = "track" | "company" | "format" | "kol" | "asset";
   const [filters, setFilters] = useState<Record<FilterKey, string[]>>({
@@ -86,16 +123,16 @@ function Planner() {
     asset: [],
   });
 
-  const uniq = (values: string[]) => [...new Set(values)].sort();
+  const uniq = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
   const options = useMemo(
     () => ({
-      track: uniq(allSessions.map((s) => s.therapyArea)),
-      company: uniq(allSessions.map((s) => s.affiliation)),
-      format: uniq(allSessions.map((s) => s.phase)),
-      kol: uniq(allSessions.map((s) => s.authors)),
-      asset: uniq(allSessions.map((s) => s.asset)),
+      track: uniq(sessions.map((s) => s.therapyArea)),
+      company: uniq(sessions.map((s) => s.affiliation)),
+      format: uniq(sessions.map((s) => s.phase)),
+      kol: uniq(sessions.map((s) => s.authors)),
+      asset: uniq(sessions.map((s) => s.asset)),
     }),
-    [],
+    [sessions],
   );
 
   const toggleFilter = (key: FilterKey, value: string) =>
@@ -116,11 +153,14 @@ function Planner() {
   const matches = (selected: string[], value: string) =>
     selected.length === 0 || selected.includes(value);
 
-  const inAgenda = useMemo(() => new Set(agenda.map((a) => a.id)), [agenda]);
+  const inAgenda = useMemo(
+    () => new Set(agendaRows.map((a) => a.sessionId)),
+    [agendaRows],
+  );
 
   const available = useMemo(
     () =>
-      allSessions.filter(
+      sessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
           matches(filters.track, s.therapyArea) &&
@@ -132,7 +172,7 @@ function Planner() {
             s.title.toLowerCase().includes(query.toLowerCase()) ||
             s.room.toLowerCase().includes(query.toLowerCase())),
       ),
-    [inAgenda, filters, query],
+    [sessions, inAgenda, filters, query],
   );
 
   const filterConfig: { key: FilterKey; label: string; opts: string[] }[] = [
@@ -143,61 +183,41 @@ function Planner() {
     { key: "asset", label: "Asset", opts: options.asset },
   ];
 
-
-
-  // group agenda by day, preserving insertion order within each day
+  // group agenda by (edited) day, preserving position order.
   const grouped = useMemo(() => {
-    const map = new Map<string, AgendaItem[]>();
-    for (const item of agenda) {
-      if (!map.has(item.day)) map.set(item.day, []);
-      map.get(item.day)!.push(item);
+    const map = new Map<string, AgendaRow[]>();
+    for (const item of agendaRows) {
+      const day = item.day || item.session?.day || "Unscheduled";
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(item);
     }
-    return [...map.entries()].sort(
-      (a, b) => DAY_ORDER.indexOf(a[0]) - DAY_ORDER.indexOf(b[0]),
+    return [...map.entries()].sort((a, b) => {
+      const ai = DAY_ORDER.indexOf(a[0]);
+      const bi = DAY_ORDER.indexOf(b[0]);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+  }, [agendaRows, DAY_ORDER]);
+
+  const moveWithinDay = (row: AgendaRow, dir: -1 | 1) => {
+    const day = row.day || row.session?.day || "Unscheduled";
+    const sameDay = agendaRows.filter(
+      (a) => (a.day || a.session?.day || "Unscheduled") === day,
     );
-  }, [agenda]);
-
-  const add = (s: Session) => {
-    setAgenda((prev) => [...prev, toAgendaItem(s)]);
-    toast.success("Added to agenda");
+    const idx = sameDay.findIndex((a) => a.id === row.id);
+    const swapWith = sameDay[idx + dir];
+    if (!swapWith) return;
+    reorderMut.mutate([
+      { id: row.id, position: swapWith.position, day },
+      { id: swapWith.id, position: row.position, day },
+    ]);
   };
 
-  const remove = (id: string) =>
-    setAgenda((prev) => prev.filter((a) => a.id !== id));
-
-  const update = (id: string, patch: Partial<AgendaItem>) =>
-    setAgenda((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
-
-  // move an item up/down among its same-day siblings within the flat list
-  const moveWithinDay = (id: string, dir: -1 | 1) => {
-    setAgenda((prev) => {
-      const item = prev.find((a) => a.id === id);
-      if (!item) return prev;
-      const sameDay = prev.filter((a) => a.day === item.day);
-      const idx = sameDay.findIndex((a) => a.id === id);
-      const swapWith = sameDay[idx + dir];
-      if (!swapWith) return prev;
-      const next = [...prev];
-      const i = next.findIndex((a) => a.id === id);
-      const j = next.findIndex((a) => a.id === swapWith.id);
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
-  };
-
-  const onDrop = (targetId: string) => {
-    if (!dragId || dragId === targetId) return;
-    setAgenda((prev) => {
-      const from = prev.findIndex((a) => a.id === dragId);
-      const to = prev.findIndex((a) => a.id === targetId);
-      if (from === -1 || to === -1) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      moved.day = next[to > from ? to - 1 : to]?.day ?? moved.day;
-      const insertAt = next.findIndex((a) => a.id === targetId);
-      next.splice(insertAt, 0, moved);
-      return next;
-    });
+  const onDrop = (target: AgendaRow) => {
+    if (!dragId || dragId === target.id) return;
+    const dragged = agendaRows.find((a) => a.id === dragId);
+    if (!dragged) return;
+    const targetDay = target.day || target.session?.day || "Unscheduled";
+    reorderMut.mutate([{ id: dragged.id, position: target.position, day: targetDay }]);
     setDragId(null);
   };
 
@@ -206,7 +226,7 @@ function Planner() {
       <PageHeader
         eyebrow="Module A · Pre-Conference"
         title="Session Planner"
-        description="Group extracted sessions into a day-by-day agenda. Edit details inline and drag to reorder."
+        description="Group extracted sessions into a day-by-day agenda. Edit details inline and drag to reorder — everything is saved automatically."
         actions={
           <Button
             variant="secondary"
@@ -269,6 +289,11 @@ function Planner() {
                         {o}
                       </DropdownMenuCheckboxItem>
                     ))}
+                    {opts.length === 0 && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        No values
+                      </div>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               );
@@ -308,9 +333,11 @@ function Planner() {
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <span>{s.day}</span>
                       <span>· {s.time}</span>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {s.therapyArea}
-                      </Badge>
+                      {s.therapyArea && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {s.therapyArea}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <Button
@@ -318,7 +345,7 @@ function Planner() {
                     variant="ghost"
                     className="h-8 w-8 shrink-0"
                     aria-label="Add to agenda"
-                    onClick={() => add(s)}
+                    onClick={() => addMut.mutate(s)}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -355,17 +382,18 @@ function Planner() {
               </div>
               <div className="grid gap-2">
                 {items.map((item, idx) => {
+                  const s = item.session;
+                  if (!s) return null;
                   const isEditing = editing === item.id;
+                  const rowDay = item.day || s.day;
                   return (
                     <Card
                       key={item.id}
                       draggable={!isEditing}
                       onDragStart={() => setDragId(item.id)}
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => onDrop(item.id)}
-                      className={
-                        dragId === item.id ? "opacity-50" : "transition-shadow"
-                      }
+                      onDrop={() => onDrop(item)}
+                      className={dragId === item.id ? "opacity-50" : "transition-shadow"}
                     >
                       <CardContent className="flex items-start gap-2 p-3">
                         <div className="flex flex-col items-center gap-0.5 pt-0.5 text-muted-foreground">
@@ -376,18 +404,24 @@ function Planner() {
                           {isEditing ? (
                             <div className="grid gap-2">
                               <Input
-                                value={item.title}
-                                onChange={(e) =>
-                                  update(item.id, { title: e.target.value })
+                                defaultValue={s.title}
+                                onBlur={(e) =>
+                                  e.target.value !== s.title &&
+                                  updSessionMut.mutate({
+                                    id: s.id,
+                                    patch: { title: e.target.value },
+                                  })
                                 }
                                 className="h-8"
                               />
                               <div className="flex flex-wrap gap-2">
                                 <Select
-                                  value={item.day}
-                                  onValueChange={(v) => update(item.id, { day: v })}
+                                  value={rowDay}
+                                  onValueChange={(v) =>
+                                    updItemMut.mutate({ id: item.id, day: v })
+                                  }
                                 >
-                                  <SelectTrigger className="h-8 w-[140px]">
+                                  <SelectTrigger className="h-8 w-[150px]">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -399,17 +433,25 @@ function Planner() {
                                   </SelectContent>
                                 </Select>
                                 <Input
-                                  value={item.time}
-                                  onChange={(e) =>
-                                    update(item.id, { time: e.target.value })
+                                  defaultValue={s.time}
+                                  onBlur={(e) =>
+                                    e.target.value !== s.time &&
+                                    updSessionMut.mutate({
+                                      id: s.id,
+                                      patch: { time: e.target.value },
+                                    })
                                   }
                                   className="h-8 w-24"
                                   placeholder="Time"
                                 />
                                 <Input
-                                  value={item.room}
-                                  onChange={(e) =>
-                                    update(item.id, { room: e.target.value })
+                                  defaultValue={s.room}
+                                  onBlur={(e) =>
+                                    e.target.value !== s.room &&
+                                    updSessionMut.mutate({
+                                      id: s.id,
+                                      patch: { room: e.target.value },
+                                    })
                                   }
                                   className="h-8 w-36"
                                   placeholder="Room"
@@ -419,10 +461,8 @@ function Planner() {
                           ) : (
                             <>
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">
-                                  {item.title}
-                                </span>
-                                {item.conflict && (
+                                <span className="text-sm font-medium">{s.title}</span>
+                                {s.conflict && (
                                   <Badge
                                     variant="destructive"
                                     className="shrink-0 gap-1 text-[10px]"
@@ -433,14 +473,16 @@ function Planner() {
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                 <span className="inline-flex items-center gap-1">
-                                  <Clock className="h-3 w-3" /> {item.time}
+                                  <Clock className="h-3 w-3" /> {s.time || "—"}
                                 </span>
                                 <span className="inline-flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" /> {item.room}
+                                  <MapPin className="h-3 w-3" /> {s.room || "—"}
                                 </span>
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {item.therapyArea}
-                                </Badge>
+                                {s.therapyArea && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    {s.therapyArea}
+                                  </Badge>
+                                )}
                               </div>
                             </>
                           )}
@@ -453,7 +495,7 @@ function Planner() {
                             className="h-7 w-7"
                             aria-label="Move up"
                             disabled={idx === 0}
-                            onClick={() => moveWithinDay(item.id, -1)}
+                            onClick={() => moveWithinDay(item, -1)}
                           >
                             <ArrowUp className="h-4 w-4" />
                           </Button>
@@ -463,7 +505,7 @@ function Planner() {
                             className="h-7 w-7"
                             aria-label="Move down"
                             disabled={idx === items.length - 1}
-                            onClick={() => moveWithinDay(item.id, 1)}
+                            onClick={() => moveWithinDay(item, 1)}
                           >
                             <ArrowDown className="h-4 w-4" />
                           </Button>
@@ -472,9 +514,7 @@ function Planner() {
                             variant="ghost"
                             className="h-7 w-7"
                             aria-label={isEditing ? "Done editing" : "Edit session"}
-                            onClick={() =>
-                              setEditing(isEditing ? null : item.id)
-                            }
+                            onClick={() => setEditing(isEditing ? null : item.id)}
                           >
                             {isEditing ? (
                               <Check className="h-4 w-4" />
@@ -487,7 +527,7 @@ function Planner() {
                             variant="ghost"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             aria-label="Remove from agenda"
-                            onClick={() => remove(item.id)}
+                            onClick={() => removeMut.mutate(item.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

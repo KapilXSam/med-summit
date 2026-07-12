@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Fragment, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useApp } from "@/context/app-context";
+import { insertSessions } from "@/lib/db";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -44,6 +47,7 @@ import {
   ShieldCheck,
   Gauge,
   ListChecks,
+  Save,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({

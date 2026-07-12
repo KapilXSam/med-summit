@@ -16,12 +16,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { conferences } from "@/data/mock";
 import { ROLES, useApp } from "@/context/app-context";
 import { ChevronDown, UserCog } from "lucide-react";
 
 export function TopBar() {
-  const { conference, setConferenceId, role, setRole } = useApp();
+  const { conference, conferences, setConferenceId, role, setRole } = useApp();
 
   const statusColor =
     conference.status === "Live"
