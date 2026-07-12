@@ -17,6 +17,7 @@ import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
 import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
 import { Route as PreExtractionRouteImport } from './routes/pre.extraction'
 import { Route as PostSummariesRouteImport } from './routes/post.summaries'
+import { Route as PostEndpointsRouteImport } from './routes/post.endpoints'
 import { Route as LiveKiqRouteImport } from './routes/live.kiq'
 import { Route as LiveInsightsRouteImport } from './routes/live.insights'
 import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
@@ -63,6 +64,11 @@ const PostSummariesRoute = PostSummariesRouteImport.update({
   path: '/post/summaries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostEndpointsRoute = PostEndpointsRouteImport.update({
+  id: '/post/endpoints',
+  path: '/post/endpoints',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveKiqRoute = LiveKiqRouteImport.update({
   id: '/live/kiq',
   path: '/live/kiq',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/live/kiq': typeof LiveKiqRoute
+  '/post/endpoints': typeof PostEndpointsRoute
   '/post/summaries': typeof PostSummariesRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/live/kiq': typeof LiveKiqRoute
+  '/post/endpoints': typeof PostEndpointsRoute
   '/post/summaries': typeof PostSummariesRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/live/dashboard': typeof LiveDashboardRoute
   '/live/insights': typeof LiveInsightsRoute
   '/live/kiq': typeof LiveKiqRoute
+  '/post/endpoints': typeof PostEndpointsRoute
   '/post/summaries': typeof PostSummariesRoute
   '/pre/extraction': typeof PreExtractionRoute
   '/pre/hypotheses': typeof PreHypothesesRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/live/dashboard'
     | '/live/insights'
     | '/live/kiq'
+    | '/post/endpoints'
     | '/post/summaries'
     | '/pre/extraction'
     | '/pre/hypotheses'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/live/dashboard'
     | '/live/insights'
     | '/live/kiq'
+    | '/post/endpoints'
     | '/post/summaries'
     | '/pre/extraction'
     | '/pre/hypotheses'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/live/dashboard'
     | '/live/insights'
     | '/live/kiq'
+    | '/post/endpoints'
     | '/post/summaries'
     | '/pre/extraction'
     | '/pre/hypotheses'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   LiveDashboardRoute: typeof LiveDashboardRoute
   LiveInsightsRoute: typeof LiveInsightsRoute
   LiveKiqRoute: typeof LiveKiqRoute
+  PostEndpointsRoute: typeof PostEndpointsRoute
   PostSummariesRoute: typeof PostSummariesRoute
   PreExtractionRoute: typeof PreExtractionRoute
   PreHypothesesRoute: typeof PreHypothesesRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostSummariesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/post/endpoints': {
+      id: '/post/endpoints'
+      path: '/post/endpoints'
+      fullPath: '/post/endpoints'
+      preLoaderRoute: typeof PostEndpointsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live/kiq': {
       id: '/live/kiq'
       path: '/live/kiq'
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveDashboardRoute: LiveDashboardRoute,
   LiveInsightsRoute: LiveInsightsRoute,
   LiveKiqRoute: LiveKiqRoute,
+  PostEndpointsRoute: PostEndpointsRoute,
   PostSummariesRoute: PostSummariesRoute,
   PreExtractionRoute: PreExtractionRoute,
   PreHypothesesRoute: PreHypothesesRoute,
