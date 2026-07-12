@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfidenceBadge } from "@/components/attribution";
-import { insights, kits } from "@/data/mock";
+import { useInsights, useKits } from "@/lib/hooks";
 import { Combine, CopyMinus, Layers, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/post/synthesis")({
@@ -12,7 +12,10 @@ export const Route = createFileRoute("/post/synthesis")({
 });
 
 function Synthesis() {
+  const { data: insights = [] } = useInsights();
+  const { data: kits = [] } = useKits();
   const duplicates = insights.filter((i) => i.duplicateOf).length;
+  const unassigned = insights.filter((i) => !i.duplicateOf && !kits.some((k) => k.id === i.kitId));
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -71,6 +74,46 @@ function Synthesis() {
             </div>
           );
         })}
+        {unassigned.length > 0 && (
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">Unassigned insights</h2>
+              <Badge variant="outline" className="text-[10px]">
+                {unassigned.length} insights
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {unassigned
+                .sort((a, b) => b.impact + b.novelty - (a.impact + a.novelty))
+                .map((i, idx) => (
+                  <Card key={i.id}>
+                    <CardContent className="flex items-start gap-3 p-4">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                        {idx + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{i.text}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {i.significant && <Badge className="text-[10px]">Significant</Badge>}
+                          {i.contradictory && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              Contradictory
+                            </Badge>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" /> Impact {i.impact} · Novelty{" "}
+                            {i.novelty}
+                          </span>
+                        </div>
+                      </div>
+                      <ConfidenceBadge score={i.confidence} />
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Card className="mt-5 border-dashed">
