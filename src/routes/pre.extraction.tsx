@@ -404,7 +404,8 @@ function Extraction() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
+
                     );
                   })}
                 </TableBody>
