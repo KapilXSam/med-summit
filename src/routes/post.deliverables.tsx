@@ -44,6 +44,16 @@ function Deliverables() {
   const selected = tiers.find((t) => t.id === tier)!;
   const preview = insights.filter((i) => !i.duplicateOf).slice(0, selected.bullets);
 
+  const handleExportPdf = () => {
+    exportExecutiveSummaryPdf({
+      conference,
+      tierName: selected.name,
+      tierDescription: selected.desc,
+      insights: preview,
+    });
+    toast.success(`Downloaded ${selected.name} PDF for ${conference.acronym}`);
+  };
+
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
