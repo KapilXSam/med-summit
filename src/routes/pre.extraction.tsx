@@ -264,7 +264,8 @@ function Extraction() {
                       (f) => (s.fieldConfidence[f.key as string] ?? 100) < threshold,
                     );
                     return (
-                      <>
+                      <Fragment key={s.id}>
+
                         <TableRow
                           key={s.id}
                           className={
