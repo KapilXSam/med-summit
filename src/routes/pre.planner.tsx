@@ -63,12 +63,35 @@ function Planner() {
   const [agenda, setAgenda] = useState<AgendaItem[]>(() =>
     allSessions.slice(0, 8).map(toAgendaItem),
   );
-  const [area, setArea] = useState("All");
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const areas = ["All", "Lung", "Breast", "GI", "GU", "Hematology"];
+  const [filters, setFilters] = useState({
+    track: "All",
+    company: "All",
+    format: "All",
+    kol: "All",
+    asset: "All",
+  });
+
+  const uniq = (values: string[]) => ["All", ...[...new Set(values)].sort()];
+  const options = useMemo(
+    () => ({
+      track: uniq(allSessions.map((s) => s.therapyArea)),
+      company: uniq(allSessions.map((s) => s.affiliation)),
+      format: uniq(allSessions.map((s) => s.phase)),
+      kol: uniq(allSessions.map((s) => s.authors)),
+      asset: uniq(allSessions.map((s) => s.asset)),
+    }),
+    [],
+  );
+
+  const setFilter = (key: keyof typeof filters, value: string) =>
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  const resetFilters = () =>
+    setFilters({ track: "All", company: "All", format: "All", kol: "All", asset: "All" });
+  const activeFilterCount = Object.values(filters).filter((v) => v !== "All").length;
 
   const inAgenda = useMemo(() => new Set(agenda.map((a) => a.id)), [agenda]);
 
@@ -77,13 +100,26 @@ function Planner() {
       allSessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
-          (area === "All" || s.therapyArea === area) &&
+          (filters.track === "All" || s.therapyArea === filters.track) &&
+          (filters.company === "All" || s.affiliation === filters.company) &&
+          (filters.format === "All" || s.phase === filters.format) &&
+          (filters.kol === "All" || s.authors === filters.kol) &&
+          (filters.asset === "All" || s.asset === filters.asset) &&
           (query === "" ||
             s.title.toLowerCase().includes(query.toLowerCase()) ||
             s.room.toLowerCase().includes(query.toLowerCase())),
       ),
-    [inAgenda, area, query],
+    [inAgenda, filters, query],
   );
+
+  const filterConfig: { key: keyof typeof filters; label: string; opts: string[] }[] = [
+    { key: "track", label: "Track", opts: options.track },
+    { key: "company", label: "Company", opts: options.company },
+    { key: "format", label: "Format", opts: options.format },
+    { key: "kol", label: "KOL", opts: options.kol },
+    { key: "asset", label: "Asset", opts: options.asset },
+  ];
+
 
   // group agenda by day, preserving insertion order within each day
   const grouped = useMemo(() => {
