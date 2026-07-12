@@ -9,7 +9,7 @@ import { useInsights } from "@/lib/hooks";
 import { useApp } from "@/context/app-context";
 import { ExtractionMark } from "@/components/attribution";
 import { exportExecutiveSummaryPdf } from "@/lib/export-pdf";
-import { Clock, FileText, FileType2, Presentation, Check, Download } from "lucide-react";
+import { FileText, FileType2, Presentation, Check, Download } from "lucide-react";
 
 export const Route = createFileRoute("/post/deliverables")({
   head: () => ({ meta: [{ title: "Deliverable Generator — VERA 2.0" }] }),
