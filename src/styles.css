@@ -5,17 +5,15 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
+ * AlphaSense-inspired design system.
+ * "Clean Authority" — financial-terminal precision with modern SaaS calm.
  *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Brand:
+ *   AlphaSense Blue  #0052CC  primary — CTAs, active states
+ *   Midnight Navy    #0F172A  dark chrome — sidebar, headers
+ *   Electric Indigo  #6366F1  AI/GenAI accent
+ *   Success Green    #10B981  positive signals
+ *   Alert Red        #EF4444  risk, critical
  */
 
 @theme inline {
@@ -59,83 +57,111 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-ai: var(--ai);
+  --color-ai-foreground: var(--ai-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
 }
 
 :root {
-  --radius: 0.5rem;
-  --background: oklch(0.985 0.004 240);
-  --foreground: oklch(0.21 0.03 240);
+  --radius: 0.75rem; /* 12px cards, 8px buttons (radius-md) */
+
+  /* Neutrals — Surface White / Light Gray / Slate text */
+  --background: oklch(1 0 0);                     /* #FFFFFF */
+  --foreground: oklch(0.28 0.04 260);             /* #1E293B */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.03 240);
+  --card-foreground: oklch(0.28 0.04 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.03 240);
-  --primary: oklch(0.52 0.09 200);
-  --primary-foreground: oklch(0.99 0.005 200);
-  --secondary: oklch(0.96 0.01 220);
-  --secondary-foreground: oklch(0.3 0.04 230);
-  --muted: oklch(0.965 0.006 230);
-  --muted-foreground: oklch(0.52 0.03 235);
-  --accent: oklch(0.94 0.03 195);
-  --accent-foreground: oklch(0.3 0.06 210);
-  --destructive: oklch(0.58 0.2 25);
+  --popover-foreground: oklch(0.28 0.04 260);
+
+  /* AlphaSense Blue */
+  --primary: oklch(0.44 0.19 258);                /* #0052CC */
+  --primary-foreground: oklch(0.99 0.005 240);
+
+  /* Section backgrounds / soft chips */
+  --secondary: oklch(0.975 0.006 240);            /* #F8FAFC-ish */
+  --secondary-foreground: oklch(0.28 0.04 260);
+  --muted: oklch(0.975 0.006 240);                /* #F8FAFC */
+  --muted-foreground: oklch(0.55 0.03 258);       /* #64748B */
+  --accent: oklch(0.96 0.02 265);                 /* subtle indigo tint */
+  --accent-foreground: oklch(0.32 0.15 265);
+
+  --destructive: oklch(0.63 0.24 27);             /* #EF4444 */
   --destructive-foreground: oklch(0.99 0.005 240);
-  --border: oklch(0.9 0.012 235);
-  --input: oklch(0.9 0.012 235);
-  --ring: oklch(0.52 0.09 200);
-  --chart-1: oklch(0.52 0.09 200);
-  --chart-2: oklch(0.6 0.13 160);
-  --chart-3: oklch(0.65 0.15 55);
-  --chart-4: oklch(0.55 0.18 300);
-  --chart-5: oklch(0.6 0.2 20);
-  --sidebar: oklch(0.24 0.035 235);
-  --sidebar-foreground: oklch(0.88 0.02 220);
-  --sidebar-primary: oklch(0.62 0.11 195);
-  --sidebar-primary-foreground: oklch(0.99 0.005 200);
-  --sidebar-accent: oklch(0.31 0.04 232);
-  --sidebar-accent-foreground: oklch(0.95 0.01 210);
-  --sidebar-border: oklch(0.31 0.035 232);
-  --sidebar-ring: oklch(0.62 0.11 195);
+
+  --border: oklch(0.9 0.012 250);                 /* #E2E8F0 */
+  --input: oklch(0.9 0.012 250);
+  --ring: oklch(0.44 0.19 258);                   /* AlphaSense Blue focus */
+
+  /* AI / GenAI accent — Electric Indigo */
+  --ai: oklch(0.59 0.22 277);                     /* #6366F1 */
+  --ai-foreground: oklch(0.99 0.005 240);
+
+  /* Success — financial positive */
+  --success: oklch(0.68 0.17 163);                /* #10B981 */
+  --success-foreground: oklch(0.99 0.005 240);
+
+  /* Charts: Blue, Green, Indigo, Amber, Red */
+  --chart-1: oklch(0.44 0.19 258);
+  --chart-2: oklch(0.68 0.17 163);
+  --chart-3: oklch(0.59 0.22 277);
+  --chart-4: oklch(0.72 0.16 75);
+  --chart-5: oklch(0.63 0.24 27);
+
+  /* Sidebar — Midnight Navy */
+  --sidebar: oklch(0.20 0.04 265);                /* #0F172A */
+  --sidebar-foreground: oklch(0.88 0.015 240);
+  --sidebar-primary: oklch(0.62 0.18 265);        /* indigo-ish highlight */
+  --sidebar-primary-foreground: oklch(0.99 0.005 240);
+  --sidebar-accent: oklch(0.26 0.04 265);
+  --sidebar-accent-foreground: oklch(0.97 0.01 240);
+  --sidebar-border: oklch(0.28 0.04 265);
+  --sidebar-ring: oklch(0.59 0.22 277);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --background: oklch(0.15 0.03 265);
+  --foreground: oklch(0.97 0.01 240);
+  --card: oklch(0.20 0.04 265);
+  --card-foreground: oklch(0.97 0.01 240);
+  --popover: oklch(0.20 0.04 265);
+  --popover-foreground: oklch(0.97 0.01 240);
+  --primary: oklch(0.62 0.18 258);
+  --primary-foreground: oklch(0.15 0.03 265);
+  --secondary: oklch(0.26 0.04 265);
+  --secondary-foreground: oklch(0.97 0.01 240);
+  --muted: oklch(0.24 0.04 265);
+  --muted-foreground: oklch(0.72 0.03 250);
+  --accent: oklch(0.28 0.06 275);
+  --accent-foreground: oklch(0.97 0.01 240);
+  --destructive: oklch(0.68 0.22 27);
+  --destructive-foreground: oklch(0.99 0.005 240);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.62 0.18 258);
+  --ai: oklch(0.68 0.20 277);
+  --ai-foreground: oklch(0.15 0.03 265);
+  --success: oklch(0.72 0.17 163);
+  --success-foreground: oklch(0.15 0.03 265);
+  --chart-1: oklch(0.62 0.18 258);
+  --chart-2: oklch(0.72 0.17 163);
+  --chart-3: oklch(0.68 0.20 277);
+  --chart-4: oklch(0.75 0.16 75);
+  --chart-5: oklch(0.68 0.22 27);
+  --sidebar: oklch(0.15 0.03 265);
+  --sidebar-foreground: oklch(0.88 0.015 240);
+  --sidebar-primary: oklch(0.62 0.18 265);
+  --sidebar-primary-foreground: oklch(0.99 0.005 240);
+  --sidebar-accent: oklch(0.22 0.04 265);
+  --sidebar-accent-foreground: oklch(0.97 0.01 240);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: oklch(0.68 0.20 277);
 }
 
 @theme inline {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque", "IBM Plex Sans", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 }
 
 @layer base {
@@ -147,11 +173,63 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    font-weight: 600;
   }
+
+  h1 { font-weight: 700; letter-spacing: -0.03em; }
+
+  /* Tabular numerals for financial-terminal feel */
+  .tabular-nums,
+  [class*="tabular"] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* AI / GenAI gradient — Synthesis Gradient (Blue → Indigo) */
+@utility bg-synthesis {
+  background-image: linear-gradient(135deg, oklch(0.44 0.19 258), oklch(0.59 0.22 277));
+}
+
+@utility text-synthesis {
+  background-image: linear-gradient(135deg, oklch(0.44 0.19 258), oklch(0.59 0.22 277));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Subtle card lift on hover — "Clean Authority" affordance */
+@utility card-lift {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -12px rgb(15 23 42 / 0.18);
+  }
+}
+
+/* Pulsing glow for "live" AI indicators */
+@utility ai-pulse {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 oklch(0.59 0.22 277 / 0.5);
+    animation: ai-pulse-ring 2s ease-out infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes ai-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 oklch(0.59 0.22 277 / 0.45); }
+  70%  { box-shadow: 0 0 0 10px oklch(0.59 0.22 277 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(0.59 0.22 277 / 0); }
 }
