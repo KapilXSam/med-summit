@@ -100,6 +100,8 @@
 
   --success: oklch(0.68 0.17 163);
   --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.72 0.16 75);                  /* amber #F59E0B */
+  --warning-foreground: oklch(0.20 0.03 60);
 
   --chart-1: oklch(0.48 0.29 264);
   --chart-2: oklch(0.68 0.17 163);
