@@ -26,7 +26,7 @@ function LbaMonitor() {
         description="Scans conference feeds every 15 minutes and alerts you only for LBAs relevant to your KIT."
         actions={
           <Badge variant="secondary" className="gap-1.5">
-            <Radar className="h-3.5 w-3.5 animate-pulse text-emerald-600" /> Monitoring
+            <Radar className="h-3.5 w-3.5 animate-pulse text-success" /> Monitoring
           </Badge>
         }
       />

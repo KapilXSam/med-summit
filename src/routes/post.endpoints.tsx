@@ -45,7 +45,7 @@ function Endpoints() {
         }
       />
 
-      <div className="mb-4 flex items-center gap-2 rounded-md border border-dashed bg-emerald-500/5 px-3 py-2 text-xs text-emerald-700">
+      <div className="mb-4 flex items-center gap-2 rounded-md border border-dashed bg-success/5 px-3 py-2 text-xs text-success">
         <ExtractionMark />
         No inferred numerical values — every number is a direct extraction from source.
       </div>

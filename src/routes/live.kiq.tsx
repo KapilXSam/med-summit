@@ -51,7 +51,7 @@ function KiqTracker() {
                     ) : (
                       <Badge
                         variant="outline"
-                        className="shrink-0 gap-1 border-amber-500/40 text-[10px] text-amber-700"
+                        className="shrink-0 gap-1 border-warning/40 text-[10px] text-warning"
                       >
                         <AlertTriangle className="h-3 w-3" /> No new evidence
                       </Badge>

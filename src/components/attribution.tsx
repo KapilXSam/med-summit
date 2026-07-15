@@ -20,8 +20,8 @@ export function ConfidenceBadge({
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium tabular-nums",
-        level === "high" && "border-emerald-600/30 bg-emerald-500/10 text-emerald-700",
-        level === "mid" && "border-amber-600/30 bg-amber-500/10 text-amber-700",
+        level === "high" && "border-success/30 bg-success/10 text-success",
+        level === "mid" && "border-warning/30 bg-warning/10 text-warning",
         level === "low" && "border-destructive/30 bg-destructive/10 text-destructive",
         className,
       )}
@@ -56,7 +56,7 @@ export function ExtractionMark() {
   return (
     <Badge
       variant="outline"
-      className="h-5 rounded-sm border-emerald-600/30 bg-emerald-500/10 px-1.5 text-[10px] font-medium text-emerald-700"
+      className="h-5 rounded-sm border-success/30 bg-success/10 px-1.5 text-[10px] font-medium text-success"
     >
       direct extraction
     </Badge>

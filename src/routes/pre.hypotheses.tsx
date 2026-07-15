@@ -66,7 +66,7 @@ function Hypotheses() {
 
       <div className="space-y-4">
         {sorted.map((h) => (
-          <Card key={h.id} className={h.gap ? "border-amber-500/40" : undefined}>
+          <Card key={h.id} className={h.gap ? "border-warning/40" : undefined}>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -74,7 +74,7 @@ function Hypotheses() {
                   {kiqLabel(h.kiqId, kits) || "Unmapped hypothesis"}
                 </div>
                 {h.gap && (
-                  <Badge variant="outline" className="gap-1 border-amber-500/40 text-amber-700">
+                  <Badge variant="outline" className="gap-1 border-warning/40 text-warning">
                     <TriangleAlert className="h-3 w-3" /> Evidence gap
                   </Badge>
                 )}
@@ -102,7 +102,7 @@ function Hypotheses() {
                   </a>
                 ))}
                 {h.gap && (
-                  <span className="text-xs text-amber-700">
+                  <span className="text-xs text-warning">
                     No conference sessions currently answer this KIQ.
                   </span>
                 )}
