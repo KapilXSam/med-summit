@@ -83,27 +83,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "VERA 2.0 — Conference Intelligence for Medical Affairs" },
-      {
-        name: "description",
-        content:
-          "End-to-end conference intelligence for pharma medical affairs: pre-conference planning, live evidence capture, and post-conference deliverables.",
-      },
       { name: "author", content: "VERA" },
-      { property: "og:title", content: "VERA 2.0 — Conference Intelligence" },
-      {
-        property: "og:description",
-        content:
-          "Plan, capture, and synthesize medical conference intelligence in one workflow.",
-      },
+      { property: "og:site_name", content: "VERA 2.0" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
@@ -114,6 +100,38 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "VERA",
+              url: "/",
+              description:
+                "VERA builds conference intelligence software for pharma medical affairs teams.",
+            },
+            {
+              "@type": "WebSite",
+              name: "VERA 2.0",
+              url: "/",
+              description:
+                "End-to-end medical conference intelligence: pre-conference planning, live evidence capture, and post-conference deliverables with source attribution.",
+            },
+            {
+              "@type": "SoftwareApplication",
+              name: "VERA 2.0",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web",
+              description:
+                "Plan agendas, capture posters, synthesize insights, and export attribution-carrying deliverables for medical and scientific congresses.",
+            },
+          ],
+        }),
       },
     ],
   }),
