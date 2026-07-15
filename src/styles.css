@@ -64,59 +64,56 @@
 }
 
 :root {
-  --radius: 0.75rem; /* 12px cards, 8px buttons (radius-md) */
+  --radius: 0.75rem;
 
-  /* Neutrals — Surface White / Light Gray / Slate text */
-  --background: oklch(1 0 0);                     /* #FFFFFF */
-  --foreground: oklch(0.28 0.04 260);             /* #1E293B */
+  /* Surface — pristine white with near-black ink for terminal-grade contrast */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.16 0.02 265);              /* near-black navy ink */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.28 0.04 260);
+  --card-foreground: oklch(0.16 0.02 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.28 0.04 260);
+  --popover-foreground: oklch(0.16 0.02 265);
 
-  /* AlphaSense Blue */
-  --primary: oklch(0.44 0.19 258);                /* #0052CC */
-  --primary-foreground: oklch(0.99 0.005 240);
+  /* AlphaSense signature blue — pure, vivid #0033FF */
+  --primary: oklch(0.48 0.29 264);
+  --primary-foreground: oklch(1 0 0);
 
-  /* Section backgrounds / soft chips */
-  --secondary: oklch(0.975 0.006 240);            /* #F8FAFC-ish */
-  --secondary-foreground: oklch(0.28 0.04 260);
-  --muted: oklch(0.975 0.006 240);                /* #F8FAFC */
-  --muted-foreground: oklch(0.55 0.03 258);       /* #64748B */
-  --accent: oklch(0.96 0.02 265);                 /* subtle indigo tint */
-  --accent-foreground: oklch(0.32 0.15 265);
+  --secondary: oklch(0.97 0.005 260);
+  --secondary-foreground: oklch(0.16 0.02 265);
+  --muted: oklch(0.97 0.005 260);
+  --muted-foreground: oklch(0.50 0.02 260);
+  --accent: oklch(0.95 0.03 265);
+  --accent-foreground: oklch(0.30 0.20 264);
 
-  --destructive: oklch(0.63 0.24 27);             /* #EF4444 */
-  --destructive-foreground: oklch(0.99 0.005 240);
+  --destructive: oklch(0.63 0.24 27);
+  --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(0.9 0.012 250);                 /* #E2E8F0 */
-  --input: oklch(0.9 0.012 250);
-  --ring: oklch(0.44 0.19 258);                   /* AlphaSense Blue focus */
+  --border: oklch(0.92 0.008 260);
+  --input: oklch(0.92 0.008 260);
+  --ring: oklch(0.48 0.29 264);
 
   /* AI / GenAI accent — Electric Indigo */
-  --ai: oklch(0.59 0.22 277);                     /* #6366F1 */
-  --ai-foreground: oklch(0.99 0.005 240);
+  --ai: oklch(0.59 0.22 277);
+  --ai-foreground: oklch(1 0 0);
 
-  /* Success — financial positive */
-  --success: oklch(0.68 0.17 163);                /* #10B981 */
-  --success-foreground: oklch(0.99 0.005 240);
+  --success: oklch(0.68 0.17 163);
+  --success-foreground: oklch(1 0 0);
 
-  /* Charts: Blue, Green, Indigo, Amber, Red */
-  --chart-1: oklch(0.44 0.19 258);
+  --chart-1: oklch(0.48 0.29 264);
   --chart-2: oklch(0.68 0.17 163);
   --chart-3: oklch(0.59 0.22 277);
   --chart-4: oklch(0.72 0.16 75);
   --chart-5: oklch(0.63 0.24 27);
 
-  /* Sidebar — Midnight Navy */
-  --sidebar: oklch(0.20 0.04 265);                /* #0F172A */
-  --sidebar-foreground: oklch(0.88 0.015 240);
-  --sidebar-primary: oklch(0.62 0.18 265);        /* indigo-ish highlight */
-  --sidebar-primary-foreground: oklch(0.99 0.005 240);
-  --sidebar-accent: oklch(0.26 0.04 265);
-  --sidebar-accent-foreground: oklch(0.97 0.01 240);
-  --sidebar-border: oklch(0.28 0.04 265);
-  --sidebar-ring: oklch(0.59 0.22 277);
+  /* Sidebar — Midnight, near-black like AlphaSense dark surface */
+  --sidebar: oklch(0.14 0.02 265);
+  --sidebar-foreground: oklch(0.90 0.01 250);
+  --sidebar-primary: oklch(0.48 0.29 264);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.20 0.03 265);
+  --sidebar-accent-foreground: oklch(0.98 0.005 250);
+  --sidebar-border: oklch(0.24 0.03 265);
+  --sidebar-ring: oklch(0.48 0.29 264);
 }
 
 .dark {
