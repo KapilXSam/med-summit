@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrePlannerRouteImport } from './routes/pre.planner'
@@ -26,6 +27,11 @@ import { Route as LiveDashboardRouteImport } from './routes/live.dashboard'
 import { Route as LiveCollabRouteImport } from './routes/live.collab'
 import { Route as LiveCaptureRouteImport } from './routes/live.capture'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -110,6 +116,7 @@ const LiveCaptureRoute = LiveCaptureRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/live/capture': typeof LiveCaptureRoute
   '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/live/capture': typeof LiveCaptureRoute
   '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/live/capture': typeof LiveCaptureRoute
   '/live/collab': typeof LiveCollabRoute
   '/live/dashboard': typeof LiveDashboardRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/sitemap.xml'
     | '/live/capture'
     | '/live/collab'
     | '/live/dashboard'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/sitemap.xml'
     | '/live/capture'
     | '/live/collab'
     | '/live/dashboard'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/sitemap.xml'
     | '/live/capture'
     | '/live/collab'
     | '/live/dashboard'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   LiveCaptureRoute: typeof LiveCaptureRoute
   LiveCollabRoute: typeof LiveCollabRoute
   LiveDashboardRoute: typeof LiveDashboardRoute
@@ -240,6 +253,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -358,6 +378,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   LiveCaptureRoute: LiveCaptureRoute,
   LiveCollabRoute: LiveCollabRoute,
   LiveDashboardRoute: LiveDashboardRoute,
