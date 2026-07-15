@@ -36,7 +36,7 @@ function LiveDashboard() {
         description="Real-time agenda, delegate check-ins, and a live feed of new insights. Optimised for mobile on the show floor."
         actions={
           <Badge variant="secondary" className="gap-1.5">
-            <Wifi className="h-3.5 w-3.5 text-emerald-600" /> Loaded in 1.4s · 4G
+            <Wifi className="h-3.5 w-3.5 text-success" /> Loaded in 1.4s · 4G
           </Badge>
         }
       />
@@ -45,7 +45,7 @@ function LiveDashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Radio className="h-4 w-4 animate-pulse text-emerald-600" /> Happening now
+              <Radio className="h-4 w-4 animate-pulse text-success" /> Happening now
             </CardTitle>
             <Button asChild size="sm" variant="secondary">
               <Link to="/live/capture">

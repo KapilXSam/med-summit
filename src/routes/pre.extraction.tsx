@@ -549,7 +549,7 @@ function Extraction() {
                                   </Badge>
                                 )}
                                 {lowFields.length === 0 && (
-                                  <span className="ml-auto inline-flex items-center gap-1 font-medium text-emerald-600">
+                                  <span className="ml-auto inline-flex items-center gap-1 font-medium text-success">
                                     <Check className="h-3.5 w-3.5" /> All fields above
                                     threshold
                                   </span>
@@ -598,7 +598,7 @@ function StatCard({
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-600"
+      ? "text-success"
       : tone === "warning"
         ? "text-destructive"
         : "text-primary";

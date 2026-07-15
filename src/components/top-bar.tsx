@@ -24,9 +24,9 @@ export function TopBar() {
 
   const statusColor =
     conference.status === "Live"
-      ? "bg-emerald-500"
+      ? "bg-success"
       : conference.status === "Planning"
-        ? "bg-amber-500"
+        ? "bg-warning"
         : "bg-muted-foreground";
 
   return (

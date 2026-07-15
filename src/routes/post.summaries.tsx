@@ -88,7 +88,7 @@ function Summaries() {
                   {Math.round((progress / 100) * total)} / {total} summarised
                 </span>
                 {done && (
-                  <span className="flex items-center gap-1 text-emerald-600">
+                  <span className="flex items-center gap-1 text-success">
                     <CheckCircle2 className="h-4 w-4" /> Complete
                   </span>
                 )}

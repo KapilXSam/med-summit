@@ -31,7 +31,7 @@ export function PageHeader({
 
 export function StubNotice({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-5 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
+    <p className="mb-5 rounded-md border border-dashed border-warning/40 bg-warning/5 px-3 py-2 text-xs text-warning">
       <span className="font-semibold">Prototype:</span> {children}
     </p>
   );

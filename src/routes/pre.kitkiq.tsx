@@ -166,7 +166,7 @@ function KitKiq() {
                       </Badge>
                       {kiq.hasNewEvidence && (
                         <span
-                          className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                          className="h-2 w-2 shrink-0 rounded-full bg-success"
                           title="New evidence"
                         />
                       )}
