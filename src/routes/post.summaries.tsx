@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useState } from "react";
 import { PageHeader, StubNotice } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,12 @@ import { usePosters } from "@/lib/hooks";
 import { CheckCircle2, FileStack, Play } from "lucide-react";
 
 export const Route = createFileRoute("/post/summaries")({
-  head: () => ({ meta: [{ title: "Bulk Summarization — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Executive Summaries — VERA 2.0",
+      description: "Tiered executive summaries by KIT and conference, ready for leadership review.",
+      path: "/post/summaries",
+    }),
   component: Summaries,
 });
 

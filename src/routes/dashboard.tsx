@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,9 +11,13 @@ import { ConfidenceBadge } from "@/components/attribution";
 import { ArrowRight, Sparkles, Users, BellRing } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({
-    meta: [{ title: "Conference Dashboard — VERA 2.0" }],
-  }),
+  head: () =>
+    routeSeo({
+      title: "Conference Dashboard — VERA 2.0",
+      description:
+        "Real-time overview of coverage, insights, delegate activity, and KIT progress for your active medical conference.",
+      path: "/dashboard",
+    }),
   component: Dashboard,
 });
 

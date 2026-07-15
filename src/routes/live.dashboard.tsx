@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,12 @@ import { useKits, useInsights, useSessions, useDelegates } from "@/lib/hooks";
 import { Camera, CheckCircle2, Clock, Radio, Sparkles, Wifi } from "lucide-react";
 
 export const Route = createFileRoute("/live/dashboard")({
-  head: () => ({ meta: [{ title: "Live Dashboard — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Live Conference Dashboard — VERA 2.0",
+      description: "Real-time delegate status, capture throughput, and insight flow during on-site medical conference coverage.",
+      path: "/live/dashboard",
+    }),
   component: LiveDashboard,
 });
 

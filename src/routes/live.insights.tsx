@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +11,12 @@ import { useApp } from "@/context/app-context";
 import { AlertOctagon, EyeOff, Sparkles, Star } from "lucide-react";
 
 export const Route = createFileRoute("/live/insights")({
-  head: () => ({ meta: [{ title: "Live AI Insights — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Live AI Insights — VERA 2.0",
+      description: "KIT/KIQ-mapped conference insights ranked by novelty, impact, and confidence, with contradictory-evidence flags.",
+      path: "/live/insights",
+    }),
   component: LiveInsights,
 });
 

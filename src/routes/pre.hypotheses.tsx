@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader, StubNotice } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,12 @@ import type { Kit } from "@/data/types";
 import { ExternalLink, FlaskConical, TriangleAlert } from "lucide-react";
 
 export const Route = createFileRoute("/pre/hypotheses")({
-  head: () => ({ meta: [{ title: "Hypothesis Engine — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Hypothesis Engine — VERA 2.0",
+      description: "Log competitive and scientific hypotheses with impact, likelihood, and linked evidence from PubMed and ClinicalTrials.gov.",
+      path: "/pre/hypotheses",
+    }),
   component: Hypotheses,
 });
 

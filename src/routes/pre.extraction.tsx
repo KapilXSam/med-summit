@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useServerFn } from "@tanstack/react-start";
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,7 +52,12 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({
-  head: () => ({ meta: [{ title: "AI Extraction — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Agenda Extraction — VERA 2.0",
+      description: "Extract structured sessions from any medical conference agenda and persist them to your workspace with confidence scores.",
+      path: "/pre/extraction",
+    }),
   component: Extraction,
 });
 

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,15 +16,13 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Conference Portfolio — VERA 2.0" },
-      {
-        name: "description",
-        content: "All your medical conferences in one intelligence workspace.",
-      },
-    ],
-  }),
+  head: () =>
+    routeSeo({
+      title: "Conference Portfolio — VERA 2.0",
+      description:
+        "Track every medical congress in one intelligence workspace: ESMO, ASH, ASCO and more, with planning, live capture, and deliverables in one place.",
+      path: "/",
+    }),
   component: Portfolio,
 });
 

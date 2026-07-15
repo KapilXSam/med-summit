@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -52,7 +53,12 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
-  head: () => ({ meta: [{ title: "Session Planner — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Coverage Planner — VERA 2.0",
+      description: "Plan delegate coverage across tracks, companies, formats, KOLs, and assets with drag-and-drop persistence.",
+      path: "/pre/planner",
+    }),
   component: Planner,
 });
 

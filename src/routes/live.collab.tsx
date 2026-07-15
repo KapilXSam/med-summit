@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { AtSign, MessageSquarePlus, Send } from "lucide-react";
 
 export const Route = createFileRoute("/live/collab")({
-  head: () => ({ meta: [{ title: "Live Collaboration — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Live Collaboration — VERA 2.0",
+      description: "Real-time delegate collaboration with comments, mentions, and live updates across the conference floor.",
+      path: "/live/collab",
+    }),
   component: Collab,
 });
 
