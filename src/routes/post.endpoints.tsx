@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,12 @@ import { toast } from "sonner";
 import { Download, Table2 } from "lucide-react";
 
 export const Route = createFileRoute("/post/endpoints")({
-  head: () => ({ meta: [{ title: "Trial Endpoint Extractor — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Endpoint Tables — VERA 2.0",
+      description: "Primary and secondary trial endpoint tables with p-values, HRs, and confidence intervals from covered sessions.",
+      path: "/post/endpoints",
+    }),
   component: Endpoints,
 });
 

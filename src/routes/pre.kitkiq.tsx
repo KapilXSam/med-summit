@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,7 +35,12 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/kitkiq")({
-  head: () => ({ meta: [{ title: "KIT / KIQ Builder — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "KIT / KIQ Builder — VERA 2.0",
+      description: "Build Key Intelligence Topics and Questions that drive downstream insight capture and synthesis.",
+      path: "/pre/kitkiq",
+    }),
   component: KitKiq,
 });
 

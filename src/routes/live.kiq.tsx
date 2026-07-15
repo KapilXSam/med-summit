@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +8,12 @@ import { useKits, useSessions } from "@/lib/hooks";
 import { AlertTriangle, CheckCircle2, Target, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/live/kiq")({
-  head: () => ({ meta: [{ title: "KIQ Tracker — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "KIQ Tracker — VERA 2.0",
+      description: "Track live progress against every Key Intelligence Question, mapped sessions, and evidence coverage.",
+      path: "/live/kiq",
+    }),
   component: KiqTracker,
 });
 

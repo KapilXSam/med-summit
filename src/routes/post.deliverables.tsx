@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader, StubNotice } from "@/components/page-header";
@@ -22,7 +23,12 @@ import {
 import { FileText, FileType2, Presentation, Check, Download } from "lucide-react";
 
 export const Route = createFileRoute("/post/deliverables")({
-  head: () => ({ meta: [{ title: "Deliverable Generator — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Deliverable Generator — VERA 2.0",
+      description: "Configurable PDF, Word, and PowerPoint deliverables for medical conferences, with source attribution on every claim.",
+      path: "/post/deliverables",
+    }),
   component: Deliverables,
 });
 

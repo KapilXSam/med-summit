@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { useState } from "react";
 import { PageHeader, StubNotice } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,12 @@ import { usePosters } from "@/lib/hooks";
 import { Camera, Crop, Loader2, Mic, ScanText, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/live/capture")({
-  head: () => ({ meta: [{ title: "Evidence Capture — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Evidence Capture — VERA 2.0",
+      description: "Capture posters and sessions on-site with OCR, page-level source attribution, and confidence scoring.",
+      path: "/live/capture",
+    }),
   component: Capture,
 });
 

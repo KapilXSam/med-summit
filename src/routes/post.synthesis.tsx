@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { routeSeo } from "@/lib/route-seo";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,12 @@ import { useInsights, useKits } from "@/lib/hooks";
 import { Combine, CopyMinus, Layers, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/post/synthesis")({
-  head: () => ({ meta: [{ title: "Insight Synthesis — VERA 2.0" }] }),
+  head: () =>
+    routeSeo({
+      title: "Cross-Session Synthesis — VERA 2.0",
+      description: "Reconcile duplicate insights and synthesize themes across sessions after the conference closes.",
+      path: "/post/synthesis",
+    }),
   component: Synthesis,
 });
 
