@@ -11,9 +11,13 @@ import { ConfidenceBadge } from "@/components/attribution";
 import { ArrowRight, Sparkles, Users, BellRing } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({
-    meta: [{ title: "Conference Dashboard — VERA 2.0" }],
-  }),
+  head: () =>
+    routeSeo({
+      title: "Conference Dashboard — VERA 2.0",
+      description:
+        "Real-time overview of coverage, insights, delegate activity, and KIT progress for your active medical conference.",
+      path: "/dashboard",
+    }),
   component: Dashboard,
 });
 
