@@ -188,7 +188,7 @@ function Planner() {
   const options = useMemo(
     () => ({
       track: uniq(sessions.map((s) => s.therapyArea)),
-      company: uniq(sessions.map((s) => s.affiliation)),
+      company: uniq(sessions.map((s) => sponsorFor(s))),
       format: uniq(sessions.map((s) => s.phase)),
       kol: uniq(sessions.map((s) => s.authors)),
       asset: uniq(sessions.map((s) => s.asset)),
@@ -225,7 +225,7 @@ function Planner() {
         (s) =>
           !inAgenda.has(s.id) &&
           matches(filters.track, s.therapyArea) &&
-          matches(filters.company, s.affiliation) &&
+          matches(filters.company, sponsorFor(s)) &&
           matches(filters.format, s.phase) &&
           matches(filters.kol, s.authors) &&
           matches(filters.asset, s.asset) &&
