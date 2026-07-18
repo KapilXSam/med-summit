@@ -471,7 +471,7 @@ function Planner() {
                         </Select>
                       </TableCell>
                       <TableCell className="pt-3 text-xs break-words">
-                        {s.affiliation || (
+                        {sponsorFor(s) || (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
