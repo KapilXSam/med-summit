@@ -20,7 +20,7 @@ import { Download, Table2 } from "lucide-react";
 export const Route = createFileRoute("/post/endpoints")({
   head: () =>
     routeSeo({
-      title: "Endpoint Tables — VERA 2.0",
+      title: "Endpoint Tables — Pharmalix",
       description: "Primary and secondary trial endpoint tables with p-values, HRs, and confidence intervals from covered sessions.",
       path: "/post/endpoints",
     }),

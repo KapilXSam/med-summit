@@ -55,7 +55,7 @@ import {
 export const Route = createFileRoute("/pre/planner")({
   head: () =>
     routeSeo({
-      title: "Coverage Planner — VERA 2.0",
+      title: "Coverage Planner — Pharmalix",
       description: "Plan delegate coverage across tracks, companies, formats, KOLs, and assets with drag-and-drop persistence.",
       path: "/pre/planner",
     }),

@@ -83,8 +83,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "author", content: "VERA" },
-      { property: "og:site_name", content: "VERA 2.0" },
+      { name: "author", content: "Pharmalix" },
+      { property: "og:site_name", content: "Pharmalix" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -110,21 +110,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@graph": [
             {
               "@type": "Organization",
-              name: "VERA",
+              name: "Pharmalix",
               url: "/",
               description:
-                "VERA builds conference intelligence software for pharma medical affairs teams.",
+                "Pharmalix builds conference intelligence software for pharma medical affairs teams.",
             },
             {
               "@type": "WebSite",
-              name: "VERA 2.0",
+              name: "Pharmalix",
               url: "/",
               description:
                 "End-to-end medical conference intelligence: pre-conference planning, live evidence capture, and post-conference deliverables with source attribution.",
             },
             {
               "@type": "SoftwareApplication",
-              name: "VERA 2.0",
+              name: "Pharmalix",
               applicationCategory: "BusinessApplication",
               operatingSystem: "Web",
               description:

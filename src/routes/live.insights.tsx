@@ -13,7 +13,7 @@ import { AlertOctagon, EyeOff, Sparkles, Star } from "lucide-react";
 export const Route = createFileRoute("/live/insights")({
   head: () =>
     routeSeo({
-      title: "Live AI Insights — VERA 2.0",
+      title: "Live AI Insights — Pharmalix",
       description: "KIT/KIQ-mapped conference insights ranked by novelty, impact, and confidence, with contradictory-evidence flags.",
       path: "/live/insights",
     }),

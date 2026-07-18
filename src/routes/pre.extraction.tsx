@@ -54,7 +54,7 @@ import {
 export const Route = createFileRoute("/pre/extraction")({
   head: () =>
     routeSeo({
-      title: "Agenda Extraction — VERA 2.0",
+      title: "Agenda Extraction — Pharmalix",
       description: "Extract structured sessions from any medical conference agenda and persist them to your workspace with confidence scores.",
       path: "/pre/extraction",
     }),

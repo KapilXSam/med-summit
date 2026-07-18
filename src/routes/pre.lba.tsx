@@ -9,7 +9,7 @@ import { BellRing, Clock, Radar } from "lucide-react";
 export const Route = createFileRoute("/pre/lba")({
   head: () =>
     routeSeo({
-      title: "LBA Monitor — VERA 2.0",
+      title: "LBA Monitor — Pharmalix",
       description: "Late-breaking abstract monitor that scans conference feeds and alerts only on LBAs relevant to your KIT.",
       path: "/pre/lba",
     }),

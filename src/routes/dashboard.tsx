@@ -13,7 +13,7 @@ import { ArrowRight, Sparkles, Users, BellRing } from "lucide-react";
 export const Route = createFileRoute("/dashboard")({
   head: () =>
     routeSeo({
-      title: "Conference Dashboard — VERA 2.0",
+      title: "Conference Dashboard — Pharmalix",
       description:
         "Real-time overview of coverage, insights, delegate activity, and KIT progress for your active medical conference.",
       path: "/dashboard",

@@ -10,7 +10,7 @@ import { ExternalLink, FlaskConical, TriangleAlert } from "lucide-react";
 export const Route = createFileRoute("/pre/hypotheses")({
   head: () =>
     routeSeo({
-      title: "Hypothesis Engine — VERA 2.0",
+      title: "Hypothesis Engine — Pharmalix",
       description: "Log competitive and scientific hypotheses with impact, likelihood, and linked evidence from PubMed and ClinicalTrials.gov.",
       path: "/pre/hypotheses",
     }),

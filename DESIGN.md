@@ -1,4 +1,4 @@
-# VERA — AlphaSense-Inspired Design System
+# Pharmalix — AlphaSense-Inspired Design System
 
 Portable spec of the "Clean Authority" design language used in this app.
 Drop into any Tailwind v4 + shadcn project. Every token is semantic — swap
