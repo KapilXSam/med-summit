@@ -12,7 +12,7 @@ import { Camera, CheckCircle2, Clock, Radio, Sparkles, Wifi } from "lucide-react
 export const Route = createFileRoute("/live/dashboard")({
   head: () =>
     routeSeo({
-      title: "Live Conference Dashboard — VERA 2.0",
+      title: "Live Conference Dashboard — Pharmalix",
       description: "Real-time delegate status, capture throughput, and insight flow during on-site medical conference coverage.",
       path: "/live/dashboard",
     }),

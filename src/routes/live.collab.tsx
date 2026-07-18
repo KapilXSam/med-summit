@@ -16,7 +16,7 @@ import { AtSign, MessageSquarePlus, Send } from "lucide-react";
 export const Route = createFileRoute("/live/collab")({
   head: () =>
     routeSeo({
-      title: "Live Collaboration — VERA 2.0",
+      title: "Live Collaboration — Pharmalix",
       description: "Real-time delegate collaboration with comments, mentions, and live updates across the conference floor.",
       path: "/live/collab",
     }),

@@ -10,7 +10,7 @@ import { AlertTriangle, CheckCircle2, Target, TrendingUp } from "lucide-react";
 export const Route = createFileRoute("/live/kiq")({
   head: () =>
     routeSeo({
-      title: "KIQ Tracker — VERA 2.0",
+      title: "KIQ Tracker — Pharmalix",
       description: "Track live progress against every Key Intelligence Question, mapped sessions, and evidence coverage.",
       path: "/live/kiq",
     }),

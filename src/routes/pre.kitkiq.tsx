@@ -37,7 +37,7 @@ import {
 export const Route = createFileRoute("/pre/kitkiq")({
   head: () =>
     routeSeo({
-      title: "KIT / KIQ Builder — VERA 2.0",
+      title: "KIT / KIQ Builder — Pharmalix",
       description: "Build Key Intelligence Topics and Questions that drive downstream insight capture and synthesis.",
       path: "/pre/kitkiq",
     }),

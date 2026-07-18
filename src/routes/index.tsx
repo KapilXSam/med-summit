@@ -18,7 +18,7 @@ import {
 export const Route = createFileRoute("/")({
   head: () =>
     routeSeo({
-      title: "Conference Portfolio — VERA 2.0",
+      title: "Conference Portfolio — Pharmalix",
       description:
         "Track every medical congress in one intelligence workspace: ESMO, ASH, ASCO and more, with planning, live capture, and deliverables in one place.",
       path: "/",

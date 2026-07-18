@@ -12,7 +12,7 @@ import { Camera, Crop, Loader2, Mic, ScanText, Upload } from "lucide-react";
 export const Route = createFileRoute("/live/capture")({
   head: () =>
     routeSeo({
-      title: "Evidence Capture — VERA 2.0",
+      title: "Evidence Capture — Pharmalix",
       description: "Capture posters and sessions on-site with OCR, page-level source attribution, and confidence scoring.",
       path: "/live/capture",
     }),

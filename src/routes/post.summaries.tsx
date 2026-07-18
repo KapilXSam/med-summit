@@ -19,7 +19,7 @@ import { CheckCircle2, FileStack, Play } from "lucide-react";
 export const Route = createFileRoute("/post/summaries")({
   head: () =>
     routeSeo({
-      title: "Executive Summaries — VERA 2.0",
+      title: "Executive Summaries — Pharmalix",
       description: "Tiered executive summaries by KIT and conference, ready for leadership review.",
       path: "/post/summaries",
     }),

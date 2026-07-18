@@ -1,12 +1,12 @@
-# VERA 2.0
+# Pharmalix
 
 > Conference intelligence platform for medical and scientific congresses — plan agendas, capture insights live, and generate attribution-carrying deliverables across the pre / live / post-conference lifecycle.
 
-VERA 2.0 helps medical affairs and competitive intelligence teams work through the full conference cycle for events like ESMO 2026, ASH 2026, and ASCO 2027: extract sessions from agendas, plan coverage against KITs and KIQs, capture posters and insights on-site, synthesize endpoints and hypotheses, and export executive summaries with source attribution on every claim.
+Pharmalix helps medical affairs and competitive intelligence teams work through the full conference cycle for events like ESMO 2026, ASH 2026, and ASCO 2027: extract sessions from agendas, plan coverage against KITs and KIQs, capture posters and insights on-site, synthesize endpoints and hypotheses, and export executive summaries with source attribution on every claim.
 
 ## Pages
 
-- [Home](/): Overview of the VERA 2.0 conference intelligence platform.
+- [Home](/): Overview of the Pharmalix conference intelligence platform.
 - [Dashboard](/dashboard): High-level view of the active conference — coverage, insights, and delegate activity.
 
 ## Pre-conference

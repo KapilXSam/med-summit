@@ -10,7 +10,7 @@ import { Combine, CopyMinus, Layers, Sparkles } from "lucide-react";
 export const Route = createFileRoute("/post/synthesis")({
   head: () =>
     routeSeo({
-      title: "Cross-Session Synthesis — VERA 2.0",
+      title: "Cross-Session Synthesis — Pharmalix",
       description: "Reconcile duplicate insights and synthesize themes across sessions after the conference closes.",
       path: "/post/synthesis",
     }),
