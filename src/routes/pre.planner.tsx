@@ -117,6 +117,9 @@ function Planner() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [timezone, setTimezone] = useState<string>("CET");
   const tzOffset = TIMEZONES.find((t) => t.value === timezone)?.offsetH ?? 0;
+  const [rowTz, setRowTz] = useState<Record<string, string>>({});
+  const [priority, setPriority] = useState<Record<string, "High" | "Medium" | "Low">>({});
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["agenda", conferenceId] });
