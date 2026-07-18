@@ -83,7 +83,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col leading-none group-data-[collapsible=icon]:hidden">
             <span className="font-display text-base font-bold tracking-tight text-sidebar-foreground">
-              VERA <span className="text-sidebar-primary">2.0</span>
+              Pharma<span className="text-sidebar-primary">lix</span>
             </span>
             <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/50">
               Conference Intelligence
