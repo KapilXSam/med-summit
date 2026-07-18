@@ -82,6 +82,21 @@ const TIMEZONES: { value: string; label: string; offsetH: number }[] = [
   { value: "JST", label: "JST · Tokyo", offsetH: 8 },
 ];
 
+// Map trial assets (drugs / competitor tags) to their trial sponsor company.
+const ASSET_SPONSOR: Record<string, string> = {
+  "VRA-101": "Veranex Therapeutics",
+  "VRA-204": "Veranex Therapeutics",
+  "Competitor A": "Merck & Co.",
+  "Competitor B": "AstraZeneca",
+  SoC: "Investigator-sponsored",
+};
+
+function sponsorFor(s: { asset?: string; trialId?: string; affiliation?: string }) {
+  if (s.asset && ASSET_SPONSOR[s.asset]) return ASSET_SPONSOR[s.asset];
+  if (s.trialId) return "Industry-sponsored trial";
+  return s.affiliation || "";
+}
+
 function shiftTime(time: string, offsetH: number): string {
   if (!time || offsetH === 0) return time;
   // supports "09:00", "09:00-10:30", "09:00–10:30", with optional trailing text
@@ -456,7 +471,7 @@ function Planner() {
                         </Select>
                       </TableCell>
                       <TableCell className="pt-3 text-xs break-words">
-                        {s.affiliation || (
+                        {sponsorFor(s) || (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
