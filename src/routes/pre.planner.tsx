@@ -225,7 +225,7 @@ function Planner() {
         (s) =>
           !inAgenda.has(s.id) &&
           matches(filters.track, s.therapyArea) &&
-          matches(filters.company, s.affiliation) &&
+          matches(filters.company, sponsorFor(s)) &&
           matches(filters.format, s.phase) &&
           matches(filters.kol, s.authors) &&
           matches(filters.asset, s.asset) &&
