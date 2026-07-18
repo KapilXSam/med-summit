@@ -394,32 +394,37 @@ function Planner() {
         <Card>
           <CardContent className="p-0">
             <div className="max-h-[62vh] overflow-auto">
-              <Table>
+              <Table className="w-full min-w-[1800px] table-fixed">
                 <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead className="min-w-[280px]">Session title</TableHead>
-                    <TableHead className="w-[170px]">Therapy area</TableHead>
-                    <TableHead className="w-[160px]">Sponsor</TableHead>
-                    <TableHead className="w-[130px]">
-                      Time <span className="text-muted-foreground">({timezone})</span>
-                    </TableHead>
+                    <TableHead className="w-[56px]">#</TableHead>
+                    <TableHead className="w-[260px]">Session title</TableHead>
+                    <TableHead className="w-[150px]">Therapy area</TableHead>
+                    <TableHead className="w-[150px]">Sponsor</TableHead>
+                    <TableHead className="w-[130px]">Time</TableHead>
+                    <TableHead className="w-[150px]">Timezone</TableHead>
                     <TableHead className="w-[110px]">Day</TableHead>
-                    <TableHead className="w-[130px]">Hall / Room</TableHead>
-                    <TableHead className="min-w-[180px]">Presenter</TableHead>
-                    <TableHead className="min-w-[160px]">Related / Asset</TableHead>
-                    <TableHead className="w-[90px]">Format</TableHead>
+                    <TableHead className="w-[140px]">Hall / Room</TableHead>
+                    <TableHead className="w-[160px]">Presenter</TableHead>
+                    <TableHead className="w-[150px]">Related / Asset</TableHead>
+                    <TableHead className="w-[140px]">Clinical Status</TableHead>
+                    <TableHead className="w-[130px]">Priority</TableHead>
                     <TableHead className="w-[70px] text-right">Add</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {available.map((s, i) => (
+                  {available.map((s, i) => {
+                    const rowTimezone = rowTz[s.id] ?? timezone;
+                    const rowOffset =
+                      TIMEZONES.find((t) => t.value === rowTimezone)?.offsetH ?? 0;
+                    const rowPriority = priority[s.id] ?? "Medium";
+                    return (
                     <TableRow key={s.id} className="align-top">
                       <TableCell className="pt-3 font-mono text-xs text-muted-foreground tabular-nums">
                         {String(i + 1).padStart(3, "0")}
                       </TableCell>
                       <TableCell className="pt-3">
-                        <div className="text-sm font-medium leading-snug">
+                        <div className="text-sm font-medium leading-snug break-words">
                           {s.title}
                         </div>
                         {s.trialId && (
@@ -450,13 +455,33 @@ function Planner() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="pt-3 text-xs">
+                      <TableCell className="pt-3 text-xs break-words">
                         {s.affiliation || (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="pt-3 font-mono text-xs tabular-nums">
-                        {shiftTime(s.time, tzOffset) || "—"}
+                        {shiftTime(s.time, rowOffset) || "—"}
+                      </TableCell>
+                      <TableCell className="pt-2">
+                        <Select
+                          value={rowTimezone}
+                          onValueChange={(v) =>
+                            setRowTz((prev) => ({ ...prev, [s.id]: v }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <Clock className="h-3 w-3 opacity-60" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TIMEZONES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="pt-3 text-xs text-muted-foreground">
                         {s.day || "—"}
@@ -467,7 +492,7 @@ function Planner() {
                           {s.room || "—"}
                         </span>
                       </TableCell>
-                      <TableCell className="pt-3 text-xs">
+                      <TableCell className="pt-3 text-xs break-words">
                         {s.authors || (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -486,6 +511,35 @@ function Planner() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
+                      <TableCell className="pt-2">
+                        <Select
+                          value={rowPriority}
+                          onValueChange={(v) =>
+                            setPriority((prev) => ({
+                              ...prev,
+                              [s.id]: v as "High" | "Medium" | "Low",
+                            }))
+                          }
+                        >
+                          <SelectTrigger
+                            className={
+                              "h-8 text-xs " +
+                              (rowPriority === "High"
+                                ? "border-destructive/50 text-destructive"
+                                : rowPriority === "Low"
+                                  ? "text-muted-foreground"
+                                  : "")
+                            }
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="High">High</SelectItem>
+                            <SelectItem value="Medium">Medium</SelectItem>
+                            <SelectItem value="Low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell className="pt-2 text-right">
                         <Button
                           size="icon"
@@ -498,11 +552,12 @@ function Planner() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                   {available.length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={11}
+                        colSpan={13}
                         className="py-10 text-center text-sm text-muted-foreground"
                       >
                         No sessions match. All extracted sessions may already be in
@@ -510,6 +565,7 @@ function Planner() {
                       </TableCell>
                     </TableRow>
                   )}
+
                 </TableBody>
               </Table>
             </div>
