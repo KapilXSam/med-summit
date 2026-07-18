@@ -16,6 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -56,11 +64,39 @@ export const Route = createFileRoute("/pre/planner")({
   head: () =>
     routeSeo({
       title: "Coverage Planner — Pharmalix",
-      description: "Plan delegate coverage across tracks, companies, formats, KOLs, and assets with drag-and-drop persistence.",
+      description:
+        "Plan delegate coverage across tracks, companies, formats, KOLs, and assets with drag-and-drop persistence.",
       path: "/pre/planner",
     }),
   component: Planner,
 });
+
+// Base timezone the source agenda times are recorded in (ESMO ⇒ CET).
+const TIMEZONES: { value: string; label: string; offsetH: number }[] = [
+  { value: "CET", label: "CET · Munich (source)", offsetH: 0 },
+  { value: "GMT", label: "GMT · London", offsetH: -1 },
+  { value: "ET", label: "ET · New York", offsetH: -6 },
+  { value: "CT", label: "CT · Chicago", offsetH: -7 },
+  { value: "PT", label: "PT · San Francisco", offsetH: -9 },
+  { value: "IST", label: "IST · Mumbai", offsetH: 3.5 },
+  { value: "JST", label: "JST · Tokyo", offsetH: 8 },
+];
+
+function shiftTime(time: string, offsetH: number): string {
+  if (!time || offsetH === 0) return time;
+  // supports "09:00", "09:00-10:30", "09:00–10:30", with optional trailing text
+  return time.replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => {
+    const totalMin = parseInt(h, 10) * 60 + parseInt(m, 10) + offsetH * 60;
+    const wrapped = ((totalMin % 1440) + 1440) % 1440;
+    const hh = Math.floor(wrapped / 60)
+      .toString()
+      .padStart(2, "0");
+    const mm = Math.floor(wrapped % 60)
+      .toString()
+      .padStart(2, "0");
+    return `${hh}:${mm}`;
+  });
+}
 
 function Planner() {
   const { conference } = useApp();
@@ -79,6 +115,8 @@ function Planner() {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState<string>("CET");
+  const tzOffset = TIMEZONES.find((t) => t.value === timezone)?.offsetH ?? 0;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["agenda", conferenceId] });
@@ -113,7 +151,6 @@ function Planner() {
     onSuccess: invalidate,
   });
 
-  // Day order derived from the conference's sessions (first-seen order).
   const DAY_ORDER = useMemo(() => {
     const seen: string[] = [];
     for (const s of sessions) if (s.day && !seen.includes(s.day)) seen.push(s.day);
@@ -176,7 +213,9 @@ function Planner() {
           matches(filters.asset, s.asset) &&
           (query === "" ||
             s.title.toLowerCase().includes(query.toLowerCase()) ||
-            s.room.toLowerCase().includes(query.toLowerCase())),
+            s.room.toLowerCase().includes(query.toLowerCase()) ||
+            s.authors.toLowerCase().includes(query.toLowerCase()) ||
+            s.affiliation.toLowerCase().includes(query.toLowerCase())),
       ),
     [sessions, inAgenda, filters, query],
   );
@@ -189,7 +228,6 @@ function Planner() {
     { key: "asset", label: "Asset", opts: options.asset },
   ];
 
-  // group agenda by (edited) day, preserving position order.
   const grouped = useMemo(() => {
     const map = new Map<string, AgendaRow[]>();
     for (const item of agendaRows) {
@@ -227,12 +265,14 @@ function Planner() {
     setDragId(null);
   };
 
+  const therapyAreaOptions = options.track;
+
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-[1400px]">
       <PageHeader
         eyebrow="Module A · Pre-Conference"
         title="Session Planner"
-        description="Group extracted sessions into a day-by-day agenda. Edit details inline and drag to reorder — everything is saved automatically."
+        description="Browse the extracted session catalogue, then add sessions to build a day-by-day agenda."
         actions={
           <Button
             variant="secondary"
@@ -243,10 +283,39 @@ function Planner() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-        {/* Available sessions */}
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2">
+      {/* Extracted sessions table */}
+      <section className="mb-8">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="mr-2 text-sm font-semibold">Extracted sessions</h2>
+          <Badge variant="secondary" className="text-[10px]">
+            {available.length}
+          </Badge>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search title, room, presenter…"
+                className="h-9 w-64 pl-9"
+              />
+            </div>
+
+            <Select value={timezone} onValueChange={setTimezone}>
+              <SelectTrigger className="h-9 w-[210px]">
+                <Clock className="h-3.5 w-3.5 opacity-60" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIMEZONES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {filterConfig.map(({ key, label, opts }) => {
               const selected = filters[key];
               return (
@@ -256,20 +325,21 @@ function Planner() {
                       variant="outline"
                       size="sm"
                       className={
-                        "h-9 justify-between gap-1 font-normal" +
+                        "h-9 gap-1 font-normal" +
                         (selected.length ? " border-primary/50" : "")
                       }
                     >
-                      <span className="truncate">
-                        {label}
-                        {selected.length > 0 && (
-                          <span className="ml-1 text-primary">({selected.length})</span>
-                        )}
-                      </span>
-                      <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                      {label}
+                      {selected.length > 0 && (
+                        <span className="text-primary">({selected.length})</span>
+                      )}
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="max-h-72 w-56 overflow-y-auto">
+                  <DropdownMenuContent
+                    align="end"
+                    className="max-h-72 w-56 overflow-y-auto"
+                  >
                     <DropdownMenuLabel className="flex items-center justify-between">
                       {label}
                       {selected.length > 0 && (
@@ -304,249 +374,334 @@ function Planner() {
                 </DropdownMenu>
               );
             })}
-          </div>
 
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search extracted sessions"
-              className="pl-9"
-            />
-          </div>
-          {activeFilterCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 justify-start px-2 text-xs text-muted-foreground"
-              onClick={resetFilters}
-            >
-              <X className="h-3 w-3" /> Clear {activeFilterCount} filter
-              {activeFilterCount === 1 ? "" : "s"}
-            </Button>
-          )}
-
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {available.length} extracted session{available.length === 1 ? "" : "s"}
-          </div>
-          <div className="grid max-h-[70vh] gap-2 overflow-y-auto pr-1">
-            {available.map((s) => (
-              <Card key={s.id} className="group">
-                <CardContent className="flex items-start gap-2 p-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 text-sm font-medium">{s.title}</div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      <span>{s.day}</span>
-                      <span>· {s.time}</span>
-                      {s.therapyArea && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {s.therapyArea}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 shrink-0"
-                    aria-label="Add to agenda"
-                    onClick={() => addMut.mutate(s)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-            {available.length === 0 && (
-              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-                No sessions match. All extracted sessions may already be in your agenda.
-              </div>
+            {activeFilterCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 gap-1 text-xs text-muted-foreground"
+                onClick={resetFilters}
+              >
+                <X className="h-3 w-3" /> Clear {activeFilterCount}
+              </Button>
             )}
           </div>
         </div>
 
-        {/* Agenda */}
-        <div className="flex flex-col gap-5">
-          {grouped.length === 0 && (
-            <div className="rounded-lg border border-dashed p-12 text-center">
-              <CalendarDays className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Your agenda is empty. Add extracted sessions from the left to start
-                building a day-by-day plan.
-              </p>
-            </div>
-          )}
-
-          {grouped.map(([day, items]) => (
-            <div key={day}>
-              <div className="mb-2 flex items-center gap-2">
-                <h2 className="text-sm font-semibold">{day}</h2>
-                <Badge variant="secondary" className="text-[10px]">
-                  {items.length} session{items.length === 1 ? "" : "s"}
-                </Badge>
-              </div>
-              <div className="grid gap-2">
-                {items.map((item, idx) => {
-                  const s = item.session;
-                  if (!s) return null;
-                  const isEditing = editing === item.id;
-                  const rowDay = item.day || s.day;
-                  return (
-                    <Card
-                      key={item.id}
-                      draggable={!isEditing}
-                      onDragStart={() => setDragId(item.id)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => onDrop(item)}
-                      className={dragId === item.id ? "opacity-50" : "transition-shadow"}
-                    >
-                      <CardContent className="flex items-start gap-2 p-3">
-                        <div className="flex flex-col items-center gap-0.5 pt-0.5 text-muted-foreground">
-                          <GripVertical className="h-4 w-4 cursor-grab" />
+        <Card>
+          <CardContent className="p-0">
+            <div className="max-h-[62vh] overflow-auto">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-card">
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead className="min-w-[280px]">Session title</TableHead>
+                    <TableHead className="w-[170px]">Therapy area</TableHead>
+                    <TableHead className="w-[160px]">Sponsor</TableHead>
+                    <TableHead className="w-[130px]">
+                      Time <span className="text-muted-foreground">({timezone})</span>
+                    </TableHead>
+                    <TableHead className="w-[110px]">Day</TableHead>
+                    <TableHead className="w-[130px]">Hall / Room</TableHead>
+                    <TableHead className="min-w-[180px]">Presenter</TableHead>
+                    <TableHead className="min-w-[160px]">Related / Asset</TableHead>
+                    <TableHead className="w-[90px]">Format</TableHead>
+                    <TableHead className="w-[70px] text-right">Add</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {available.map((s, i) => (
+                    <TableRow key={s.id} className="align-top">
+                      <TableCell className="pt-3 font-mono text-xs text-muted-foreground tabular-nums">
+                        {String(i + 1).padStart(3, "0")}
+                      </TableCell>
+                      <TableCell className="pt-3">
+                        <div className="text-sm font-medium leading-snug">
+                          {s.title}
                         </div>
+                        {s.trialId && (
+                          <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                            {s.trialId}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="pt-2">
+                        <Select
+                          value={s.therapyArea || ""}
+                          onValueChange={(v) =>
+                            updSessionMut.mutate({
+                              id: s.id,
+                              patch: { therapyArea: v },
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {therapyAreaOptions.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="pt-3 text-xs">
+                        {s.affiliation || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="pt-3 font-mono text-xs tabular-nums">
+                        {shiftTime(s.time, tzOffset) || "—"}
+                      </TableCell>
+                      <TableCell className="pt-3 text-xs text-muted-foreground">
+                        {s.day || "—"}
+                      </TableCell>
+                      <TableCell className="pt-3 text-xs">
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          {s.room || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="pt-3 text-xs">
+                        {s.authors || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="pt-3 text-xs">
+                        {s.asset ? (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {s.asset}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="pt-3 text-xs">
+                        {s.phase || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="pt-2 text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          aria-label="Add to agenda"
+                          onClick={() => addMut.mutate(s)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {available.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={11}
+                        className="py-10 text-center text-sm text-muted-foreground"
+                      >
+                        No sessions match. All extracted sessions may already be in
+                        your agenda.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-                        <div className="min-w-0 flex-1">
-                          {isEditing ? (
-                            <div className="grid gap-2">
+      {/* Day-by-day agenda */}
+      <section className="flex flex-col gap-5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold">Day-by-day agenda</h2>
+          <Badge variant="secondary" className="text-[10px]">
+            {agendaRows.length} session{agendaRows.length === 1 ? "" : "s"}
+          </Badge>
+        </div>
+
+        {grouped.length === 0 && (
+          <div className="rounded-lg border border-dashed p-12 text-center">
+            <CalendarDays className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Your agenda is empty. Add extracted sessions from the table above to
+              start building a day-by-day plan.
+            </p>
+          </div>
+        )}
+
+        {grouped.map(([day, items]) => (
+          <div key={day}>
+            <div className="mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold">{day}</h3>
+              <Badge variant="secondary" className="text-[10px]">
+                {items.length} session{items.length === 1 ? "" : "s"}
+              </Badge>
+            </div>
+            <div className="grid gap-2">
+              {items.map((item, idx) => {
+                const s = item.session;
+                if (!s) return null;
+                const isEditing = editing === item.id;
+                const rowDay = item.day || s.day;
+                return (
+                  <Card
+                    key={item.id}
+                    draggable={!isEditing}
+                    onDragStart={() => setDragId(item.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => onDrop(item)}
+                    className={dragId === item.id ? "opacity-50" : "transition-shadow"}
+                  >
+                    <CardContent className="flex items-start gap-2 p-3">
+                      <div className="flex flex-col items-center gap-0.5 pt-0.5 text-muted-foreground">
+                        <GripVertical className="h-4 w-4 cursor-grab" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        {isEditing ? (
+                          <div className="grid gap-2">
+                            <Input
+                              defaultValue={s.title}
+                              onBlur={(e) =>
+                                e.target.value !== s.title &&
+                                updSessionMut.mutate({
+                                  id: s.id,
+                                  patch: { title: e.target.value },
+                                })
+                              }
+                              className="h-8"
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <Select
+                                value={rowDay}
+                                onValueChange={(v) =>
+                                  updItemMut.mutate({ id: item.id, day: v })
+                                }
+                              >
+                                <SelectTrigger className="h-8 w-[150px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {DAY_ORDER.map((d) => (
+                                    <SelectItem key={d} value={d}>
+                                      {d}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <Input
-                                defaultValue={s.title}
+                                defaultValue={s.time}
                                 onBlur={(e) =>
-                                  e.target.value !== s.title &&
+                                  e.target.value !== s.time &&
                                   updSessionMut.mutate({
                                     id: s.id,
-                                    patch: { title: e.target.value },
+                                    patch: { time: e.target.value },
                                   })
                                 }
-                                className="h-8"
+                                className="h-8 w-24"
+                                placeholder="Time"
                               />
-                              <div className="flex flex-wrap gap-2">
-                                <Select
-                                  value={rowDay}
-                                  onValueChange={(v) =>
-                                    updItemMut.mutate({ id: item.id, day: v })
-                                  }
-                                >
-                                  <SelectTrigger className="h-8 w-[150px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {DAY_ORDER.map((d) => (
-                                      <SelectItem key={d} value={d}>
-                                        {d}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Input
-                                  defaultValue={s.time}
-                                  onBlur={(e) =>
-                                    e.target.value !== s.time &&
-                                    updSessionMut.mutate({
-                                      id: s.id,
-                                      patch: { time: e.target.value },
-                                    })
-                                  }
-                                  className="h-8 w-24"
-                                  placeholder="Time"
-                                />
-                                <Input
-                                  defaultValue={s.room}
-                                  onBlur={(e) =>
-                                    e.target.value !== s.room &&
-                                    updSessionMut.mutate({
-                                      id: s.id,
-                                      patch: { room: e.target.value },
-                                    })
-                                  }
-                                  className="h-8 w-36"
-                                  placeholder="Room"
-                                />
-                              </div>
+                              <Input
+                                defaultValue={s.room}
+                                onBlur={(e) =>
+                                  e.target.value !== s.room &&
+                                  updSessionMut.mutate({
+                                    id: s.id,
+                                    patch: { room: e.target.value },
+                                  })
+                                }
+                                className="h-8 w-36"
+                                placeholder="Room"
+                              />
                             </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">{s.title}</span>
-                                {s.conflict && (
-                                  <Badge
-                                    variant="destructive"
-                                    className="shrink-0 gap-1 text-[10px]"
-                                  >
-                                    <TriangleAlert className="h-3 w-3" /> Conflict
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                <span className="inline-flex items-center gap-1">
-                                  <Clock className="h-3 w-3" /> {s.time || "—"}
-                                </span>
-                                <span className="inline-flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" /> {s.room || "—"}
-                                </span>
-                                {s.therapyArea && (
-                                  <Badge variant="secondary" className="text-[10px]">
-                                    {s.therapyArea}
-                                  </Badge>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{s.title}</span>
+                              {s.conflict && (
+                                <Badge
+                                  variant="destructive"
+                                  className="shrink-0 gap-1 text-[10px]"
+                                >
+                                  <TriangleAlert className="h-3 w-3" /> Conflict
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                                <Clock className="h-3 w-3" />{" "}
+                                {shiftTime(s.time, tzOffset) || "—"}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3 w-3" /> {s.room || "—"}
+                              </span>
+                              {s.therapyArea && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {s.therapyArea}
+                                </Badge>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
 
-                        <div className="flex shrink-0 items-center gap-0.5">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            aria-label="Move up"
-                            disabled={idx === 0}
-                            onClick={() => moveWithinDay(item, -1)}
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            aria-label="Move down"
-                            disabled={idx === items.length - 1}
-                            onClick={() => moveWithinDay(item, 1)}
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            aria-label={isEditing ? "Done editing" : "Edit session"}
-                            onClick={() => setEditing(isEditing ? null : item.id)}
-                          >
-                            {isEditing ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Pencil className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            aria-label="Remove from agenda"
-                            onClick={() => removeMut.mutate(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          aria-label="Move up"
+                          disabled={idx === 0}
+                          onClick={() => moveWithinDay(item, -1)}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          aria-label="Move down"
+                          disabled={idx === items.length - 1}
+                          onClick={() => moveWithinDay(item, 1)}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          aria-label={isEditing ? "Done editing" : "Edit session"}
+                          onClick={() => setEditing(isEditing ? null : item.id)}
+                        >
+                          {isEditing ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Pencil className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          aria-label="Remove from agenda"
+                          onClick={() => removeMut.mutate(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
