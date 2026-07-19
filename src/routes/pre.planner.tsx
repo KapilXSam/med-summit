@@ -221,7 +221,7 @@ function Planner() {
   const uniq = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
   const options = useMemo(
     () => ({
-      track: uniq(sessions.map((s) => s.therapyArea)),
+      track: uniq(sessions.map((s) => indicationFor(s))),
       company: uniq(sessions.map((s) => sponsorFor(s))),
       format: uniq(sessions.map((s) => s.phase)),
       kol: uniq(sessions.map((s) => s.authors)),
