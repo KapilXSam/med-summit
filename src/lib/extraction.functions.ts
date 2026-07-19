@@ -194,10 +194,24 @@ export const suggestConferenceUrls = createServerFn({ method: "POST" })
     });
     if (!res.ok) throw new Error(`Search failed (${res.status})`);
     const json = (await res.json()) as {
-      data?: Array<{ url?: string; title?: string; description?: string }>;
+      data?:
+        | Array<{ url?: string; title?: string; description?: string }>
+        | {
+            web?: Array<{ url?: string; title?: string; description?: string }>;
+            news?: Array<{ url?: string; title?: string; description?: string }>;
+          };
       web?: Array<{ url?: string; title?: string; description?: string }>;
+      results?: Array<{ url?: string; title?: string; description?: string }>;
     };
-    const items = json.data ?? json.web ?? [];
+    const items: Array<{ url?: string; title?: string; description?: string }> =
+      Array.isArray(json.data)
+        ? json.data
+        : (json.data?.web ??
+          json.data?.news ??
+          json.web ??
+          json.results ??
+          []);
+
     const suggestions: UrlSuggestion[] = [];
     const seen = new Set<string>();
     const agendaHint =
