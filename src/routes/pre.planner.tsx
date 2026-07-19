@@ -484,7 +484,11 @@ function Planner() {
                       </TableCell>
                       <TableCell className="pt-2">
                         <Select
-                          value={s.therapyArea || indicationFor(s)}
+                          value={
+                            s.therapyArea && INDICATION_OPTIONS.includes(s.therapyArea)
+                              ? s.therapyArea
+                              : indicationFor(s)
+                          }
                           onValueChange={(v) =>
                             updSessionMut.mutate({
                               id: s.id,
