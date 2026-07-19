@@ -32,6 +32,10 @@ import { ConfidenceBadge } from "@/components/attribution";
 import {
   ingestConferenceUrl,
   retryFieldExtraction,
+  suggestConferenceUrls,
+  checkAgendaUrl,
+  type UrlSuggestion,
+  type UrlCheckResult,
 } from "@/lib/extraction.functions";
 import { EDITABLE_FIELDS, type ExtractedSession } from "@/lib/extraction-types";
 import {
@@ -49,6 +53,11 @@ import {
   Gauge,
   ListChecks,
   Save,
+  CheckCircle2,
+  XCircle,
+  Copy,
+  Merge,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({
@@ -64,6 +73,8 @@ export const Route = createFileRoute("/pre/extraction")({
 function Extraction() {
   const ingest = useServerFn(ingestConferenceUrl);
   const retryField = useServerFn(retryFieldExtraction);
+  const suggest = useServerFn(suggestConferenceUrls);
+  const checkUrl = useServerFn(checkAgendaUrl);
   const { conference } = useApp();
   const qc = useQueryClient();
 
@@ -103,6 +114,49 @@ function Extraction() {
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [retrying, setRetrying] = useState<string | null>(null);
+
+  // Conference name search
+  const [nameQuery, setNameQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // URL check
+  const [check, setCheck] = useState<UrlCheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  async function handleSuggest() {
+    if (!nameQuery.trim()) return;
+    setSearching(true);
+    setSuggestions([]);
+    try {
+      const res = await suggest({ data: { query: nameQuery.trim() } });
+      setSuggestions(res);
+      if (res.length === 0) toast.warning("No agenda pages found — try a more specific name");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Search failed");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleCheck(target?: string) {
+    const u = (target ?? url).trim();
+    if (!u) return;
+    setChecking(true);
+    setCheck(null);
+    try {
+      const res = await checkUrl({ data: { url: u } });
+      setCheck(res);
+      if (res.ok && res.looksLikeAgenda) toast.success("URL looks like a valid agenda page");
+      else if (res.ok) toast.warning(res.reason ?? "Reachable but not clearly an agenda");
+      else toast.error(res.reason ?? "URL is not reachable");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "URL check failed");
+    } finally {
+      setChecking(false);
+    }
+  }
+
 
   async function handleIngest() {
     if (!url.trim()) {
@@ -195,6 +249,78 @@ function Extraction() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, threshold]);
 
+  // Duplicate detection: group by trialId or normalized-title similarity
+  const duplicateGroups = useMemo(() => {
+    const norm = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const groups: ExtractedSession[][] = [];
+    const used = new Set<string>();
+    for (const a of rows) {
+      if (used.has(a.id)) continue;
+      const group = [a];
+      used.add(a.id);
+      const aTitle = norm(a.title);
+      const aTrial = a.trialId?.trim().toLowerCase();
+      for (const b of rows) {
+        if (used.has(b.id) || b.id === a.id) continue;
+        const bTitle = norm(b.title);
+        const bTrial = b.trialId?.trim().toLowerCase();
+        const trialMatch = !!aTrial && !!bTrial && aTrial === bTrial;
+        const titleMatch =
+          aTitle.length > 15 &&
+          bTitle.length > 15 &&
+          (aTitle === bTitle ||
+            aTitle.includes(bTitle) ||
+            bTitle.includes(aTitle));
+        if (trialMatch || titleMatch) {
+          group.push(b);
+          used.add(b.id);
+        }
+      }
+      if (group.length > 1) groups.push(group);
+    }
+    return groups;
+  }, [rows]);
+
+  function mergeGroup(group: ExtractedSession[]) {
+    // Merge into the row with highest overall confidence; per field pick highest-conf non-empty value.
+    const sorted = [...group].sort((a, b) => b.confidence - a.confidence);
+    const primary = sorted[0];
+    const merged: ExtractedSession = { ...primary };
+    for (const f of EDITABLE_FIELDS) {
+      let bestVal = (primary[f.key] as string) ?? "";
+      let bestConf = primary.fieldConfidence[f.key as string] ?? 0;
+      for (const s of group) {
+        const v = (s[f.key] as string) ?? "";
+        const c = s.fieldConfidence[f.key as string] ?? 0;
+        if (v && (c > bestConf || !bestVal)) {
+          bestVal = v;
+          bestConf = c;
+        }
+      }
+      (merged as unknown as Record<string, unknown>)[f.key as string] = bestVal;
+      merged.fieldConfidence[f.key as string] = bestConf;
+    }
+    const removeIds = new Set(group.map((g) => g.id).filter((id) => id !== primary.id));
+    setRows((prev) =>
+      prev.filter((r) => !removeIds.has(r.id)).map((r) => (r.id === primary.id ? merged : r)),
+    );
+    toast.success(`Merged ${group.length} duplicates into "${merged.title.slice(0, 40)}…"`);
+  }
+
+  function dismissGroup(group: ExtractedSession[]) {
+    // Mark as not-a-duplicate by nudging one title so it won't re-group.
+    const [, ...rest] = group;
+    setRows((prev) =>
+      prev.map((r) =>
+        rest.find((x) => x.id === r.id)
+          ? { ...r, title: r.title + " " }
+          : r,
+      ),
+    );
+  }
+
+
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
@@ -242,7 +368,70 @@ function Extraction() {
           </div>
         </div>
         <CardContent className="space-y-5 p-4">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          {/* Conference-name search → suggestions */}
+          <div>
+            <Label
+              htmlFor="conf-name"
+              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            >
+              Find a conference by name
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="conf-name"
+                  placeholder="e.g. ESMO 2026, ASH 2026, ASCO 2027"
+                  className="pl-8"
+                  value={nameQuery}
+                  onChange={(e) => setNameQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSuggest()}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSuggest}
+                disabled={searching}
+              >
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Suggest URLs
+              </Button>
+            </div>
+            {suggestions.length > 0 && (
+              <div className="mt-2 space-y-1.5 rounded-lg border bg-muted/30 p-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.url}
+                    type="button"
+                    onClick={() => {
+                      setUrl(s.url);
+                      setCheck(null);
+                      void handleCheck(s.url);
+                    }}
+                    className="group flex w-full items-start gap-2 rounded-md p-2 text-left hover:bg-background"
+                  >
+                    <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{s.title}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {s.url}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100">
+                      Use →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
             <div className="relative min-w-0">
               <Label
                 htmlFor="agenda-url"
@@ -258,10 +447,27 @@ function Extraction() {
                 placeholder="https://conference.org/2025/agenda"
                 className="pl-8"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setCheck(null);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleIngest()}
               />
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleCheck()}
+              disabled={checking || !url.trim()}
+              className="shrink-0"
+            >
+              {checking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
+              Check URL
+            </Button>
             <Button onClick={handleIngest} disabled={loading} className="shrink-0">
               {loading ? (
                 <>
@@ -274,6 +480,40 @@ function Extraction() {
               )}
             </Button>
           </div>
+
+          {check && (
+            <div
+              className={
+                "flex items-start gap-2 rounded-md border px-3 py-2 text-xs " +
+                (check.ok && check.looksLikeAgenda
+                  ? "border-success/30 bg-success/5 text-success"
+                  : check.ok
+                    ? "border-warning/30 bg-warning/5 text-warning-foreground"
+                    : "border-destructive/30 bg-destructive/5 text-destructive")
+              }
+            >
+              {check.ok && check.looksLikeAgenda ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : check.ok ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <div className="min-w-0">
+                <div className="font-medium">
+                  {check.ok && check.looksLikeAgenda
+                    ? "Looks like a valid agenda page"
+                    : check.ok
+                      ? "Reachable, but not clearly an agenda"
+                      : "URL is not reachable"}
+                </div>
+                <div className="text-[11px] opacity-80">
+                  HTTP {check.status || "—"} · {check.reason}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] sm:items-center">
             <div>
               <Label className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
@@ -390,6 +630,73 @@ function Extraction() {
               <AlertTriangle className="h-4 w-4" /> Flagged ({stats.flagged})
             </Button>
           </div>
+
+          {/* Duplicate suggestions */}
+          {duplicateGroups.length > 0 && (
+            <Card className="border-warning/40 bg-warning/5">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center gap-2">
+                  <Copy className="h-4 w-4 text-warning-foreground" />
+                  <p className="text-sm font-semibold">
+                    {duplicateGroups.length} possible duplicate group
+                    {duplicateGroups.length > 1 ? "s" : ""} detected
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {duplicateGroups.map((g, i) => (
+                    <div
+                      key={i}
+                      className="rounded-md border bg-background p-3 text-sm"
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{g[0].title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {g.length} rows · matched by{" "}
+                            {g[0].trialId &&
+                            g.every((x) => x.trialId === g[0].trialId)
+                              ? `trial ID ${g[0].trialId}`
+                              : "title similarity"}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => mergeGroup(g)}
+                          >
+                            <Merge className="h-3.5 w-3.5" /> Merge (keep best)
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => dismissGroup(g)}
+                            aria-label="Not a duplicate"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {g.map((s) => (
+                          <li key={s.id} className="flex items-center gap-2">
+                            <span className="font-mono tabular-nums">
+                              {s.confidence}%
+                            </span>
+                            <span className="truncate">
+                              {[s.day, s.time, s.room, s.authors]
+                                .filter(Boolean)
+                                .join(" · ") || "—"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
 
           <Card>
             <CardContent className="p-0">
