@@ -176,3 +176,98 @@ ${markdown}`;
       confidence: Number.isFinite(conf) ? Math.max(0, Math.min(100, Math.round(conf))) : 50,
     };
   });
+
+export const suggestConferenceUrls = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SuggestInput.parse(input))
+  .handler(async ({ data }): Promise<UrlSuggestion[]> => {
+    const fcKey = process.env.FIRECRAWL_API_KEY;
+    if (!fcKey) throw new Error("Firecrawl is not configured");
+    const query = `${data.query} scientific programme agenda sessions abstracts`;
+
+    const res = await fetch("https://api.firecrawl.dev/v2/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${fcKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, limit: 8 }),
+    });
+    if (!res.ok) throw new Error(`Search failed (${res.status})`);
+    const json = (await res.json()) as {
+      data?: Array<{ url?: string; title?: string; description?: string }>;
+      web?: Array<{ url?: string; title?: string; description?: string }>;
+    };
+    const items = json.data ?? json.web ?? [];
+    const suggestions: UrlSuggestion[] = [];
+    const seen = new Set<string>();
+    const agendaHint =
+      /(agenda|program(me)?|session|abstract|schedule|scientific|congress|meeting)/i;
+    for (const it of items) {
+      if (!it.url || seen.has(it.url)) continue;
+      seen.add(it.url);
+      const title = it.title ?? it.url;
+      const desc = it.description ?? "";
+      const score =
+        (agendaHint.test(title) ? 1 : 0) + (agendaHint.test(desc) ? 1 : 0);
+      suggestions.push({ url: it.url, title, description: desc });
+      // prioritize agenda-y ones by pushing others down
+      if (score === 0 && suggestions.length > 5) break;
+    }
+    return suggestions
+      .sort((a, b) => {
+        const sa = (agendaHint.test(a.title) ? 2 : 0) + (agendaHint.test(a.description) ? 1 : 0);
+        const sb = (agendaHint.test(b.title) ? 2 : 0) + (agendaHint.test(b.description) ? 1 : 0);
+        return sb - sa;
+      })
+      .slice(0, 6);
+  });
+
+export const checkAgendaUrl = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CheckInput.parse(input))
+  .handler(async ({ data }): Promise<UrlCheckResult> => {
+    try {
+      const r = await fetch(data.url, {
+        method: "GET",
+        headers: { "User-Agent": "Mozilla/5.0 Pharmalix/1.0" },
+        redirect: "follow",
+      });
+      const contentType = r.headers.get("content-type") ?? "";
+      if (!r.ok) {
+        return {
+          ok: false,
+          status: r.status,
+          contentType,
+          looksLikeAgenda: false,
+          reason: `HTTP ${r.status}`,
+        };
+      }
+      const text = (await r.text()).slice(0, 60000).toLowerCase();
+      const hits = [
+        "session",
+        "abstract",
+        "programme",
+        "program",
+        "agenda",
+        "schedule",
+        "presentation",
+        "poster",
+      ].filter((k) => text.includes(k)).length;
+      const looksLikeAgenda = hits >= 2;
+      return {
+        ok: true,
+        status: r.status,
+        contentType,
+        looksLikeAgenda,
+        reason: looksLikeAgenda
+          ? `Detected ${hits} agenda keywords`
+          : "Page reachable but no agenda keywords detected",
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        status: 0,
+        looksLikeAgenda: false,
+        reason: e instanceof Error ? e.message : "Fetch failed",
+      };
+    }
+  });
