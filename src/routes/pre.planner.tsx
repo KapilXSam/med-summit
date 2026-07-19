@@ -484,7 +484,7 @@ function Planner() {
                       </TableCell>
                       <TableCell className="pt-2">
                         <Select
-                          value={s.therapyArea || ""}
+                          value={s.therapyArea || indicationFor(s)}
                           onValueChange={(v) =>
                             updSessionMut.mutate({
                               id: s.id,
@@ -496,7 +496,7 @@ function Planner() {
                             <SelectValue placeholder="Select…" />
                           </SelectTrigger>
                           <SelectContent>
-                            {therapyAreaOptions.map((t) => (
+                            {indicationOptions.map((t) => (
                               <SelectItem key={t} value={t}>
                                 {t}
                               </SelectItem>
