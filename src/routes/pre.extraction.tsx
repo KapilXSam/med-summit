@@ -73,6 +73,8 @@ export const Route = createFileRoute("/pre/extraction")({
 function Extraction() {
   const ingest = useServerFn(ingestConferenceUrl);
   const retryField = useServerFn(retryFieldExtraction);
+  const suggest = useServerFn(suggestConferenceUrls);
+  const checkUrl = useServerFn(checkAgendaUrl);
   const { conference } = useApp();
   const qc = useQueryClient();
 
@@ -112,6 +114,49 @@ function Extraction() {
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [retrying, setRetrying] = useState<string | null>(null);
+
+  // Conference name search
+  const [nameQuery, setNameQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // URL check
+  const [check, setCheck] = useState<UrlCheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  async function handleSuggest() {
+    if (!nameQuery.trim()) return;
+    setSearching(true);
+    setSuggestions([]);
+    try {
+      const res = await suggest({ data: { query: nameQuery.trim() } });
+      setSuggestions(res);
+      if (res.length === 0) toast.warning("No agenda pages found — try a more specific name");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Search failed");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleCheck(target?: string) {
+    const u = (target ?? url).trim();
+    if (!u) return;
+    setChecking(true);
+    setCheck(null);
+    try {
+      const res = await checkUrl({ data: { url: u } });
+      setCheck(res);
+      if (res.ok && res.looksLikeAgenda) toast.success("URL looks like a valid agenda page");
+      else if (res.ok) toast.warning(res.reason ?? "Reachable but not clearly an agenda");
+      else toast.error(res.reason ?? "URL is not reachable");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "URL check failed");
+    } finally {
+      setChecking(false);
+    }
+  }
+
 
   async function handleIngest() {
     if (!url.trim()) {
