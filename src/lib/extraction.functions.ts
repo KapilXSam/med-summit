@@ -17,6 +17,28 @@ const RetryInput = z.object({
   field: z.string().min(1),
 });
 
+const SuggestInput = z.object({
+  query: z.string().min(2).max(200),
+});
+
+const CheckInput = z.object({
+  url: z.string().url(),
+});
+
+export interface UrlSuggestion {
+  url: string;
+  title: string;
+  description: string;
+}
+
+export interface UrlCheckResult {
+  ok: boolean;
+  status: number;
+  contentType?: string;
+  looksLikeAgenda: boolean;
+  reason?: string;
+}
+
 const FIELD_KEYS = [
   "title",
   "authors",
