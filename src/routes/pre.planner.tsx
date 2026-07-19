@@ -448,7 +448,7 @@ function Planner() {
                   <TableRow>
                     <TableHead className="w-[56px]">#</TableHead>
                     <TableHead className="w-[260px]">Session title</TableHead>
-                    <TableHead className="w-[150px]">Therapy area</TableHead>
+                    <TableHead className="w-[170px]">Indication</TableHead>
                     <TableHead className="w-[150px]">Sponsor</TableHead>
                     <TableHead className="w-[130px]">Time</TableHead>
                     <TableHead className="w-[150px]">Timezone</TableHead>
