@@ -631,6 +631,73 @@ function Extraction() {
             </Button>
           </div>
 
+          {/* Duplicate suggestions */}
+          {duplicateGroups.length > 0 && (
+            <Card className="border-warning/40 bg-warning/5">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center gap-2">
+                  <Copy className="h-4 w-4 text-warning-foreground" />
+                  <p className="text-sm font-semibold">
+                    {duplicateGroups.length} possible duplicate group
+                    {duplicateGroups.length > 1 ? "s" : ""} detected
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {duplicateGroups.map((g, i) => (
+                    <div
+                      key={i}
+                      className="rounded-md border bg-background p-3 text-sm"
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{g[0].title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {g.length} rows · matched by{" "}
+                            {g[0].trialId &&
+                            g.every((x) => x.trialId === g[0].trialId)
+                              ? `trial ID ${g[0].trialId}`
+                              : "title similarity"}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => mergeGroup(g)}
+                          >
+                            <Merge className="h-3.5 w-3.5" /> Merge (keep best)
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => dismissGroup(g)}
+                            aria-label="Not a duplicate"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {g.map((s) => (
+                          <li key={s.id} className="flex items-center gap-2">
+                            <span className="font-mono tabular-nums">
+                              {s.confidence}%
+                            </span>
+                            <span className="truncate">
+                              {[s.day, s.time, s.room, s.authors]
+                                .filter(Boolean)
+                                .join(" · ") || "—"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+
           <Card>
             <CardContent className="p-0">
               <Table>
