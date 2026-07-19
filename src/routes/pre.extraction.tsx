@@ -32,6 +32,10 @@ import { ConfidenceBadge } from "@/components/attribution";
 import {
   ingestConferenceUrl,
   retryFieldExtraction,
+  suggestConferenceUrls,
+  checkAgendaUrl,
+  type UrlSuggestion,
+  type UrlCheckResult,
 } from "@/lib/extraction.functions";
 import { EDITABLE_FIELDS, type ExtractedSession } from "@/lib/extraction-types";
 import {
@@ -49,6 +53,11 @@ import {
   Gauge,
   ListChecks,
   Save,
+  CheckCircle2,
+  XCircle,
+  Copy,
+  Merge,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({
