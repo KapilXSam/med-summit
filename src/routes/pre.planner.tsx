@@ -97,6 +97,40 @@ function sponsorFor(s: { asset?: string; trialId?: string; affiliation?: string 
   return s.affiliation || "";
 }
 
+// Derive a specific indication from the session title. Falls back to the
+// stored therapy area (broader bucket) when no disease keyword is found.
+const INDICATION_RULES: { label: string; patterns: RegExp[] }[] = [
+  { label: "NSCLC", patterns: [/\bNSCLC\b/i, /non[- ]small[- ]cell lung/i, /\blung\b/i] },
+  { label: "SCLC", patterns: [/\bSCLC\b/i, /small[- ]cell lung/i] },
+  { label: "Breast cancer", patterns: [/\bbreast\b/i, /\bHER2\b/i, /\bHR\+/i, /triple[- ]negative/i, /\bTNBC\b/i] },
+  { label: "Colorectal cancer", patterns: [/colorectal/i, /\bCRC\b/i, /\brectal\b/i, /\bcolon\b/i] },
+  { label: "Prostate cancer", patterns: [/prostate/i, /\bmCRPC\b/i, /castration[- ]resistant/i] },
+  { label: "Ovarian cancer", patterns: [/ovarian/i] },
+  { label: "Lymphoma", patterns: [/lymphoma/i, /\bDLBCL\b/i, /Hodgkin/i] },
+  { label: "Leukemia", patterns: [/leukemia/i, /\bAML\b/i, /\bCLL\b/i, /\bALL\b/i] },
+  { label: "Multiple myeloma", patterns: [/myeloma/i] },
+  { label: "Melanoma", patterns: [/melanoma/i] },
+  { label: "Gastric cancer", patterns: [/gastric/i, /stomach cancer/i] },
+  { label: "Pancreatic cancer", patterns: [/pancrea/i] },
+  { label: "Hepatocellular carcinoma", patterns: [/hepatocellular/i, /\bHCC\b/i, /liver cancer/i] },
+  { label: "Bladder / urothelial", patterns: [/bladder/i, /urothelial/i] },
+  { label: "Head & neck cancer", patterns: [/head and neck/i, /\bHNSCC\b/i] },
+  { label: "Renal cell carcinoma", patterns: [/renal cell/i, /\bRCC\b/i, /kidney cancer/i] },
+  { label: "Glioma / CNS", patterns: [/glioma/i, /glioblastoma/i, /\bGBM\b/i] },
+  { label: "Cervical cancer", patterns: [/cervical/i] },
+  { label: "Endometrial cancer", patterns: [/endometrial/i] },
+];
+
+function indicationFor(s: { title?: string; therapyArea?: string }) {
+  const title = s.title || "";
+  for (const rule of INDICATION_RULES) {
+    if (rule.patterns.some((p) => p.test(title))) return rule.label;
+  }
+  return s.therapyArea || "Other";
+}
+
+const INDICATION_OPTIONS = INDICATION_RULES.map((r) => r.label);
+
 function shiftTime(time: string, offsetH: number): string {
   if (!time || offsetH === 0) return time;
   // supports "09:00", "09:00-10:30", "09:00–10:30", with optional trailing text
@@ -187,7 +221,7 @@ function Planner() {
   const uniq = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
   const options = useMemo(
     () => ({
-      track: uniq(sessions.map((s) => s.therapyArea)),
+      track: uniq(sessions.map((s) => indicationFor(s))),
       company: uniq(sessions.map((s) => sponsorFor(s))),
       format: uniq(sessions.map((s) => s.phase)),
       kol: uniq(sessions.map((s) => s.authors)),
@@ -224,7 +258,7 @@ function Planner() {
       sessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
-          matches(filters.track, s.therapyArea) &&
+          matches(filters.track, indicationFor(s)) &&
           matches(filters.company, sponsorFor(s)) &&
           matches(filters.format, s.phase) &&
           matches(filters.kol, s.authors) &&
@@ -239,7 +273,7 @@ function Planner() {
   );
 
   const filterConfig: { key: FilterKey; label: string; opts: string[] }[] = [
-    { key: "track", label: "Track", opts: options.track },
+    { key: "track", label: "Indication", opts: options.track },
     { key: "company", label: "Company", opts: options.company },
     { key: "format", label: "Format", opts: options.format },
     { key: "kol", label: "KOL", opts: options.kol },
@@ -283,7 +317,7 @@ function Planner() {
     setDragId(null);
   };
 
-  const therapyAreaOptions = options.track;
+  const indicationOptions = [...new Set([...INDICATION_OPTIONS, ...options.track])];
 
   return (
     <div className="mx-auto max-w-[1400px]">
@@ -414,7 +448,7 @@ function Planner() {
                   <TableRow>
                     <TableHead className="w-[56px]">#</TableHead>
                     <TableHead className="w-[260px]">Session title</TableHead>
-                    <TableHead className="w-[150px]">Therapy area</TableHead>
+                    <TableHead className="w-[170px]">Indication</TableHead>
                     <TableHead className="w-[150px]">Sponsor</TableHead>
                     <TableHead className="w-[130px]">Time</TableHead>
                     <TableHead className="w-[150px]">Timezone</TableHead>
@@ -450,7 +484,7 @@ function Planner() {
                       </TableCell>
                       <TableCell className="pt-2">
                         <Select
-                          value={s.therapyArea || ""}
+                          value={s.therapyArea || indicationFor(s)}
                           onValueChange={(v) =>
                             updSessionMut.mutate({
                               id: s.id,
@@ -462,7 +496,7 @@ function Planner() {
                             <SelectValue placeholder="Select…" />
                           </SelectTrigger>
                           <SelectContent>
-                            {therapyAreaOptions.map((t) => (
+                            {indicationOptions.map((t) => (
                               <SelectItem key={t} value={t}>
                                 {t}
                               </SelectItem>
