@@ -317,7 +317,7 @@ function Planner() {
     setDragId(null);
   };
 
-  const therapyAreaOptions = options.track;
+  const indicationOptions = [...new Set([...INDICATION_OPTIONS, ...options.track])];
 
   return (
     <div className="mx-auto max-w-[1400px]">
