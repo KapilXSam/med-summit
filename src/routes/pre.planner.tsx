@@ -258,7 +258,7 @@ function Planner() {
       sessions.filter(
         (s) =>
           !inAgenda.has(s.id) &&
-          matches(filters.track, s.therapyArea) &&
+          matches(filters.track, indicationFor(s)) &&
           matches(filters.company, sponsorFor(s)) &&
           matches(filters.format, s.phase) &&
           matches(filters.kol, s.authors) &&
