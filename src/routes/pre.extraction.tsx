@@ -368,7 +368,70 @@ function Extraction() {
           </div>
         </div>
         <CardContent className="space-y-5 p-4">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          {/* Conference-name search → suggestions */}
+          <div>
+            <Label
+              htmlFor="conf-name"
+              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            >
+              Find a conference by name
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="conf-name"
+                  placeholder="e.g. ESMO 2026, ASH 2026, ASCO 2027"
+                  className="pl-8"
+                  value={nameQuery}
+                  onChange={(e) => setNameQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSuggest()}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSuggest}
+                disabled={searching}
+              >
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                Suggest URLs
+              </Button>
+            </div>
+            {suggestions.length > 0 && (
+              <div className="mt-2 space-y-1.5 rounded-lg border bg-muted/30 p-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.url}
+                    type="button"
+                    onClick={() => {
+                      setUrl(s.url);
+                      setCheck(null);
+                      void handleCheck(s.url);
+                    }}
+                    className="group flex w-full items-start gap-2 rounded-md p-2 text-left hover:bg-background"
+                  >
+                    <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{s.title}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {s.url}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100">
+                      Use →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
             <div className="relative min-w-0">
               <Label
                 htmlFor="agenda-url"
@@ -384,10 +447,27 @@ function Extraction() {
                 placeholder="https://conference.org/2025/agenda"
                 className="pl-8"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setCheck(null);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleIngest()}
               />
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleCheck()}
+              disabled={checking || !url.trim()}
+              className="shrink-0"
+            >
+              {checking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
+              Check URL
+            </Button>
             <Button onClick={handleIngest} disabled={loading} className="shrink-0">
               {loading ? (
                 <>
@@ -400,6 +480,40 @@ function Extraction() {
               )}
             </Button>
           </div>
+
+          {check && (
+            <div
+              className={
+                "flex items-start gap-2 rounded-md border px-3 py-2 text-xs " +
+                (check.ok && check.looksLikeAgenda
+                  ? "border-success/30 bg-success/5 text-success"
+                  : check.ok
+                    ? "border-warning/30 bg-warning/5 text-warning-foreground"
+                    : "border-destructive/30 bg-destructive/5 text-destructive")
+              }
+            >
+              {check.ok && check.looksLikeAgenda ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : check.ok ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <div className="min-w-0">
+                <div className="font-medium">
+                  {check.ok && check.looksLikeAgenda
+                    ? "Looks like a valid agenda page"
+                    : check.ok
+                      ? "Reachable, but not clearly an agenda"
+                      : "URL is not reachable"}
+                </div>
+                <div className="text-[11px] opacity-80">
+                  HTTP {check.status || "—"} · {check.reason}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] sm:items-center">
             <div>
               <Label className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
