@@ -273,7 +273,7 @@ function Planner() {
   );
 
   const filterConfig: { key: FilterKey; label: string; opts: string[] }[] = [
-    { key: "track", label: "Track", opts: options.track },
+    { key: "track", label: "Indication", opts: options.track },
     { key: "company", label: "Company", opts: options.company },
     { key: "format", label: "Format", opts: options.format },
     { key: "kol", label: "KOL", opts: options.kol },
