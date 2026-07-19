@@ -97,6 +97,40 @@ function sponsorFor(s: { asset?: string; trialId?: string; affiliation?: string 
   return s.affiliation || "";
 }
 
+// Derive a specific indication from the session title. Falls back to the
+// stored therapy area (broader bucket) when no disease keyword is found.
+const INDICATION_RULES: { label: string; patterns: RegExp[] }[] = [
+  { label: "NSCLC", patterns: [/\bNSCLC\b/i, /non[- ]small[- ]cell lung/i, /\blung\b/i] },
+  { label: "SCLC", patterns: [/\bSCLC\b/i, /small[- ]cell lung/i] },
+  { label: "Breast cancer", patterns: [/\bbreast\b/i, /\bHER2\b/i, /\bHR\+/i, /triple[- ]negative/i, /\bTNBC\b/i] },
+  { label: "Colorectal cancer", patterns: [/colorectal/i, /\bCRC\b/i, /\brectal\b/i, /\bcolon\b/i] },
+  { label: "Prostate cancer", patterns: [/prostate/i, /\bmCRPC\b/i, /castration[- ]resistant/i] },
+  { label: "Ovarian cancer", patterns: [/ovarian/i] },
+  { label: "Lymphoma", patterns: [/lymphoma/i, /\bDLBCL\b/i, /Hodgkin/i] },
+  { label: "Leukemia", patterns: [/leukemia/i, /\bAML\b/i, /\bCLL\b/i, /\bALL\b/i] },
+  { label: "Multiple myeloma", patterns: [/myeloma/i] },
+  { label: "Melanoma", patterns: [/melanoma/i] },
+  { label: "Gastric cancer", patterns: [/gastric/i, /stomach cancer/i] },
+  { label: "Pancreatic cancer", patterns: [/pancrea/i] },
+  { label: "Hepatocellular carcinoma", patterns: [/hepatocellular/i, /\bHCC\b/i, /liver cancer/i] },
+  { label: "Bladder / urothelial", patterns: [/bladder/i, /urothelial/i] },
+  { label: "Head & neck cancer", patterns: [/head and neck/i, /\bHNSCC\b/i] },
+  { label: "Renal cell carcinoma", patterns: [/renal cell/i, /\bRCC\b/i, /kidney cancer/i] },
+  { label: "Glioma / CNS", patterns: [/glioma/i, /glioblastoma/i, /\bGBM\b/i] },
+  { label: "Cervical cancer", patterns: [/cervical/i] },
+  { label: "Endometrial cancer", patterns: [/endometrial/i] },
+];
+
+function indicationFor(s: { title?: string; therapyArea?: string }) {
+  const title = s.title || "";
+  for (const rule of INDICATION_RULES) {
+    if (rule.patterns.some((p) => p.test(title))) return rule.label;
+  }
+  return s.therapyArea || "Other";
+}
+
+const INDICATION_OPTIONS = INDICATION_RULES.map((r) => r.label);
+
 function shiftTime(time: string, offsetH: number): string {
   if (!time || offsetH === 0) return time;
   // supports "09:00", "09:00-10:30", "09:00–10:30", with optional trailing text
