@@ -249,6 +249,78 @@ function Extraction() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, threshold]);
 
+  // Duplicate detection: group by trialId or normalized-title similarity
+  const duplicateGroups = useMemo(() => {
+    const norm = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const groups: ExtractedSession[][] = [];
+    const used = new Set<string>();
+    for (const a of rows) {
+      if (used.has(a.id)) continue;
+      const group = [a];
+      used.add(a.id);
+      const aTitle = norm(a.title);
+      const aTrial = a.trialId?.trim().toLowerCase();
+      for (const b of rows) {
+        if (used.has(b.id) || b.id === a.id) continue;
+        const bTitle = norm(b.title);
+        const bTrial = b.trialId?.trim().toLowerCase();
+        const trialMatch = !!aTrial && !!bTrial && aTrial === bTrial;
+        const titleMatch =
+          aTitle.length > 15 &&
+          bTitle.length > 15 &&
+          (aTitle === bTitle ||
+            aTitle.includes(bTitle) ||
+            bTitle.includes(aTitle));
+        if (trialMatch || titleMatch) {
+          group.push(b);
+          used.add(b.id);
+        }
+      }
+      if (group.length > 1) groups.push(group);
+    }
+    return groups;
+  }, [rows]);
+
+  function mergeGroup(group: ExtractedSession[]) {
+    // Merge into the row with highest overall confidence; per field pick highest-conf non-empty value.
+    const sorted = [...group].sort((a, b) => b.confidence - a.confidence);
+    const primary = sorted[0];
+    const merged: ExtractedSession = { ...primary };
+    for (const f of EDITABLE_FIELDS) {
+      let bestVal = (primary[f.key] as string) ?? "";
+      let bestConf = primary.fieldConfidence[f.key as string] ?? 0;
+      for (const s of group) {
+        const v = (s[f.key] as string) ?? "";
+        const c = s.fieldConfidence[f.key as string] ?? 0;
+        if (v && (c > bestConf || !bestVal)) {
+          bestVal = v;
+          bestConf = c;
+        }
+      }
+      (merged as unknown as Record<string, unknown>)[f.key as string] = bestVal;
+      merged.fieldConfidence[f.key as string] = bestConf;
+    }
+    const removeIds = new Set(group.map((g) => g.id).filter((id) => id !== primary.id));
+    setRows((prev) =>
+      prev.filter((r) => !removeIds.has(r.id)).map((r) => (r.id === primary.id ? merged : r)),
+    );
+    toast.success(`Merged ${group.length} duplicates into "${merged.title.slice(0, 40)}…"`);
+  }
+
+  function dismissGroup(group: ExtractedSession[]) {
+    // Mark as not-a-duplicate by nudging one title so it won't re-group.
+    const [, ...rest] = group;
+    setRows((prev) =>
+      prev.map((r) =>
+        rest.find((x) => x.id === r.id)
+          ? { ...r, title: r.title + " " }
+          : r,
+      ),
+    );
+  }
+
+
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
