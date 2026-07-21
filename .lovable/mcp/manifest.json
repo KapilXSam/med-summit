@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://vgbtctdwpuosasbflpou.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "pharmalix-mcp",
+      "version": "0.1.0",
+      "title": "Pharmalix Conference Intelligence"
+    },
+    "tools": [
+      {
+        "name": "list_conferences",
+        "title": "List conferences",
+        "description": "List all conferences tracked in Pharmalix (name, acronym, dates, location, status, phase).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_sessions",
+        "title": "List sessions",
+        "description": "List sessions for a conference, optionally filtered by therapy area or trial ID. Returns title, day, time, room, authors, affiliation, trialId, therapyArea, asset, phase.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "conferenceId": {
+              "type": "string",
+              "description": "Conference ID (from list_conferences)."
+            },
+            "therapyArea": {
+              "description": "Optional indication/therapy area filter.",
+              "type": "string"
+            },
+            "trialId": {
+              "description": "Optional trial ID filter (exact match).",
+              "type": "string"
+            },
+            "limit": {
+              "description": "Max rows to return (default 100).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "conferenceId"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_insights",
+        "title": "List insights",
+        "description": "List captured insights for a conference. Returns text, KIT/KIQ mapping, significance, novelty, impact, confidence, and source quote.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "conferenceId": {
+              "type": "string",
+              "description": "Conference ID (from list_conferences)."
+            },
+            "significantOnly": {
+              "description": "Only return insights flagged significant.",
+              "type": "boolean"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "conferenceId"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_insight",
+        "title": "Create insight",
+        "description": "Add a new insight to a conference, optionally linked to a KIT/KIQ, with a source quote and page reference.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "conferenceId": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The insight statement."
+            },
+            "kitId": {
+              "type": "string"
+            },
+            "kiqId": {
+              "type": "string"
+            },
+            "sourceQuote": {
+              "type": "string"
+            },
+            "page": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "significant": {
+              "type": "boolean"
+            },
+            "contradictory": {
+              "type": "boolean"
+            },
+            "novelty": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "impact": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "conferenceId",
+            "text"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
