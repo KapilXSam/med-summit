@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   CalendarSearch,
   CalendarRange,
-  ScanText,
+  
   ListChecks,
   BellRing,
   Target,
