@@ -125,13 +125,31 @@ function Extraction() {
   const [searching, setSearching] = useState(false);
   const [autoBuilding, setAutoBuilding] = useState(false);
   const [autoAttempts, setAutoAttempts] = useState<AutoBuildAttempt[]>([]);
+  const [lastRun, setLastRun] = useState<{
+    fromCache: boolean;
+    cachedAt?: string;
+    distributed: { newSessions: number; postersCreated: number; endpointsCreated: number };
+  } | null>(null);
+  const [history, setHistory] = useState<ExtractionRunRow[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // URL check
   const [check, setCheck] = useState<UrlCheckResult | null>(null);
   const [checking, setChecking] = useState(false);
 
   const autoBuild = useServerFn(autoBuildFromName);
-  async function handleAutoBuild() {
+  const fetchHistory = useServerFn(getExtractionHistory);
+
+  async function refreshHistory() {
+    try {
+      const rows = await fetchHistory({ data: { conferenceId: conference.id, limit: 8 } });
+      setHistory(rows);
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  async function handleAutoBuild(opts: { refresh?: boolean } = {}) {
     if (!nameQuery.trim()) {
       toast.error("Type a conference name first");
       return;
@@ -139,26 +157,50 @@ function Extraction() {
     setAutoBuilding(true);
     setAutoAttempts([]);
     setRows([]);
+    setLastRun(null);
     try {
-      const res = await autoBuild({ data: { query: nameQuery.trim() } });
+      const res = await autoBuild({
+        data: {
+          query: nameQuery.trim(),
+          conferenceId: conference.id,
+          refresh: opts.refresh ?? false,
+        },
+      });
       setAutoAttempts(res.attempts);
+      setLastRun({
+        fromCache: res.fromCache,
+        cachedAt: res.cachedAt,
+        distributed: res.distributed,
+      });
       if (res.sessions.length > 0 && res.sourceUrl) {
         setRows(res.sessions);
         setSourceUrl(res.sourceUrl);
         setUrl(res.sourceUrl);
         setExpanded({});
-        toast.success(
-          `Auto-built ${res.sessions.length} sessions from ${new URL(res.sourceUrl).hostname}`,
-        );
+        const host = new URL(res.sourceUrl).hostname;
+        const d = res.distributed;
+        const distTxt = `+${d.newSessions} sessions, +${d.postersCreated} posters, +${d.endpointsCreated} endpoints`;
+        if (res.fromCache) {
+          toast.success(`Loaded ${res.sessions.length} sessions from cache (${host}) · ${distTxt}`);
+        } else {
+          toast.success(`Auto-built ${res.sessions.length} sessions from ${host} · ${distTxt}`);
+        }
+        // Propagate to the rest of the app
+        qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
+        qc.invalidateQueries({ queryKey: ["posters", conference.id] });
+        qc.invalidateQueries({ queryKey: ["endpoints", conference.id] });
+        qc.invalidateQueries({ queryKey: ["conferences"] });
       } else {
         toast.warning(res.warning ?? "No sessions found");
       }
+      void refreshHistory();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Auto-build failed");
     } finally {
       setAutoBuilding(false);
     }
   }
+
 
   async function handleSuggest() {
     if (!nameQuery.trim()) return;
