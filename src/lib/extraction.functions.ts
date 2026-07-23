@@ -285,3 +285,161 @@ export const checkAgendaUrl = createServerFn({ method: "POST" })
       };
     }
   });
+
+const AutoBuildInput = z.object({
+  query: z.string().min(2).max(200),
+  limit: z.number().min(1).max(80).optional(),
+});
+
+export interface AutoBuildAttempt {
+  url: string;
+  title: string;
+  status: "ok" | "empty" | "failed";
+  sessions: number;
+  reason?: string;
+}
+
+export interface AutoBuildResult {
+  query: string;
+  sourceUrl: string | null;
+  sessions: ExtractedSession[];
+  attempts: AutoBuildAttempt[];
+  warning?: string;
+}
+
+async function searchAgendaUrls(query: string): Promise<UrlSuggestion[]> {
+  const fcKey = process.env.FIRECRAWL_API_KEY;
+  if (!fcKey) throw new Error("Firecrawl is not configured");
+  const q = `${query} scientific programme agenda sessions abstracts`;
+  const res = await fetch("https://api.firecrawl.dev/v2/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${fcKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query: q, limit: 10 }),
+  });
+  if (!res.ok) throw new Error(`Search failed (${res.status})`);
+  const json = (await res.json()) as {
+    data?:
+      | Array<{ url?: string; title?: string; description?: string }>
+      | {
+          web?: Array<{ url?: string; title?: string; description?: string }>;
+          news?: Array<{ url?: string; title?: string; description?: string }>;
+        };
+    web?: Array<{ url?: string; title?: string; description?: string }>;
+    results?: Array<{ url?: string; title?: string; description?: string }>;
+  };
+  const items = Array.isArray(json.data)
+    ? json.data
+    : (json.data?.web ?? json.data?.news ?? json.web ?? json.results ?? []);
+  const agendaHint =
+    /(agenda|program(me)?|session|abstract|schedule|scientific|congress|meeting)/i;
+  const seen = new Set<string>();
+  const out: UrlSuggestion[] = [];
+  for (const it of items) {
+    if (!it.url || seen.has(it.url)) continue;
+    seen.add(it.url);
+    out.push({ url: it.url, title: it.title ?? it.url, description: it.description ?? "" });
+  }
+  return out
+    .sort((a, b) => {
+      const sa = (agendaHint.test(a.title) ? 2 : 0) + (agendaHint.test(a.description) ? 1 : 0);
+      const sb = (agendaHint.test(b.title) ? 2 : 0) + (agendaHint.test(b.description) ? 1 : 0);
+      return sb - sa;
+    })
+    .slice(0, 6);
+}
+
+async function ingestOnce(url: string, limit: number): Promise<ExtractedSession[]> {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) throw new Error("AI is not configured");
+  const markdown = await scrapeMarkdown(url);
+  const gateway = createLovableAiGatewayProvider(apiKey);
+  const prompt = `You are a medical-conference agenda extraction engine. From the page content below, extract every scientific session, abstract, or presentation you can find (up to ${limit}).
+
+For EACH session return an object with these string fields (use "" when a value is genuinely absent — never guess or infer):
+- title, authors, affiliation, day, time, room, trialId, therapyArea, asset
+
+Also return "fieldConfidence": an object mapping each of those field names to an integer 0-100. Also return "confidence": overall 0-100.
+
+Return ONLY a JSON array, no prose.
+
+PAGE CONTENT:
+${markdown}`;
+  const { text } = await generateText({
+    model: gateway("google/gemini-3-flash-preview"),
+    prompt,
+  });
+  const parsed = parseJson<Record<string, unknown>[]>(text);
+  if (!parsed || !Array.isArray(parsed)) return [];
+  return parsed.slice(0, limit).map((raw, i) => {
+    const fc: Record<string, number> = {};
+    const rawFc = (raw.fieldConfidence ?? {}) as Record<string, unknown>;
+    for (const k of FIELD_KEYS) {
+      const v = Number(rawFc[k]);
+      fc[k] = Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 50;
+    }
+    const str = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string) : "");
+    const overall = Number(raw.confidence);
+    return {
+      id: `ext-${i}`,
+      title: str("title"),
+      authors: str("authors"),
+      affiliation: str("affiliation"),
+      day: str("day"),
+      time: str("time"),
+      room: str("room"),
+      trialId: str("trialId"),
+      therapyArea: str("therapyArea"),
+      asset: str("asset"),
+      confidence: Number.isFinite(overall)
+        ? Math.max(0, Math.min(100, Math.round(overall)))
+        : Math.round(FIELD_KEYS.reduce((a, k) => a + fc[k], 0) / FIELD_KEYS.length),
+      fieldConfidence: fc,
+    };
+  });
+}
+
+export const autoBuildFromName = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => AutoBuildInput.parse(input))
+  .handler(async ({ data }): Promise<AutoBuildResult> => {
+    const limit = data.limit ?? 40;
+    const candidates = await searchAgendaUrls(data.query);
+    if (candidates.length === 0) {
+      return {
+        query: data.query,
+        sourceUrl: null,
+        sessions: [],
+        attempts: [],
+        warning: "No candidate URLs found — try a more specific name.",
+      };
+    }
+
+    const attempts: AutoBuildAttempt[] = [];
+    for (const c of candidates.slice(0, 4)) {
+      try {
+        const sessions = await ingestOnce(c.url, limit);
+        if (sessions.length > 0) {
+          attempts.push({ url: c.url, title: c.title, status: "ok", sessions: sessions.length });
+          return { query: data.query, sourceUrl: c.url, sessions, attempts };
+        }
+        attempts.push({ url: c.url, title: c.title, status: "empty", sessions: 0 });
+      } catch (e) {
+        attempts.push({
+          url: c.url,
+          title: c.title,
+          status: "failed",
+          sessions: 0,
+          reason: e instanceof Error ? e.message : "Unknown error",
+        });
+      }
+    }
+    return {
+      query: data.query,
+      sourceUrl: null,
+      sessions: [],
+      attempts,
+      warning: "Tried the top candidates but none returned sessions. Paste a direct agenda URL below.",
+    };
+  });
