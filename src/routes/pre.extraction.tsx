@@ -1,163 +1,292 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { routeSeo } from "@/lib/route-seo";
 import { useServerFn } from "@tanstack/react-start";
-import { Fragment, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApp } from "@/context/app-context";
-import { insertSessions } from "@/lib/db";
+import { useSessions } from "@/lib/hooks";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ConfidenceBadge } from "@/components/attribution";
+import type { Session } from "@/data/types";
 import {
-  ingestConferenceUrl,
-  retryFieldExtraction,
-  suggestConferenceUrls,
-  checkAgendaUrl,
   autoBuildFromName,
-  getExtractionHistory,
-  type UrlSuggestion,
-  type UrlCheckResult,
+  ingestConferenceUrl,
   type AutoBuildAttempt,
-  type ExtractionRunRow,
 } from "@/lib/extraction.functions";
-import { EDITABLE_FIELDS, type ExtractedSession } from "@/lib/extraction-types";
 import {
   Search,
   Wand2,
-  AlertTriangle,
-  Link2,
   Loader2,
-  ChevronDown,
-  ChevronRight,
   RotateCw,
-  Check,
   Sparkles,
-  ShieldCheck,
-  Gauge,
-  ListChecks,
-  Save,
-  CheckCircle2,
-  XCircle,
-  Copy,
-  Merge,
-  X,
+  Calendar,
+  MapPin,
+  Users,
+  ExternalLink,
+  Filter,
+  Flame,
+  Mic,
+  Presentation,
+  BookOpen,
+  Star,
+  Building2,
+  ChevronDown,
+  Radio,
+  Clock,
+  Layers,
+  ArrowRight,
+  Database,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/extraction")({
   head: () =>
     routeSeo({
-      title: "Agenda Extraction — Pharmalix",
-      description: "Extract structured sessions from any medical conference agenda and persist them to your workspace with confidence scores.",
+      title: "Conference Calendar — Pharmalix",
+      description:
+        "Explore the full ESMO 2026 program in one place — browse sessions by type, day, and indication, and plan your attendance faster than the source website.",
       path: "/pre/extraction",
     }),
-  component: Extraction,
+  component: ConferenceCalendar,
 });
 
-function Extraction() {
-  const ingest = useServerFn(ingestConferenceUrl);
-  const retryField = useServerFn(retryFieldExtraction);
-  const suggest = useServerFn(suggestConferenceUrls);
-  const checkUrl = useServerFn(checkAgendaUrl);
+const ESMO_URL = "https://cslide.ctimeetingtech.com/esmo2026/attendee/confcal";
+
+// ---------- session type derivation ----------
+
+const SESSION_TYPES = [
+  { key: "Late-Breaking", icon: Flame, tone: "danger" },
+  { key: "Plenary", icon: Star, tone: "primary" },
+  { key: "Keynote", icon: Star, tone: "primary" },
+  { key: "Proffered Paper", icon: Mic, tone: "success" },
+  { key: "Mini Oral", icon: Mic, tone: "success" },
+  { key: "Poster Discussion", icon: Presentation, tone: "warning" },
+  { key: "Poster", icon: Presentation, tone: "muted" },
+  { key: "Symposium", icon: Layers, tone: "primary" },
+  { key: "Educational", icon: BookOpen, tone: "muted" },
+  { key: "Meet the Expert", icon: Users, tone: "muted" },
+  { key: "Industry", icon: Building2, tone: "muted" },
+  { key: "Workshop", icon: Layers, tone: "muted" },
+  { key: "Session", icon: Radio, tone: "muted" },
+] as const;
+
+type SessionType = (typeof SESSION_TYPES)[number]["key"];
+
+function deriveType(title: string): SessionType {
+  const t = title.toLowerCase();
+  if (/\blba\b|late[- ]breaking/.test(t)) return "Late-Breaking";
+  if (/plenary/.test(t)) return "Plenary";
+  if (/keynote/.test(t)) return "Keynote";
+  if (/proffered/.test(t)) return "Proffered Paper";
+  if (/mini[- ]oral/.test(t)) return "Mini Oral";
+  if (/poster discussion|poster spotlight/.test(t)) return "Poster Discussion";
+  if (/poster/.test(t)) return "Poster";
+  if (/symposium/.test(t)) return "Symposium";
+  if (/educational|tutorial/.test(t)) return "Educational";
+  if (/meet the expert|ask the expert/.test(t)) return "Meet the Expert";
+  if (/industry|satellite|sponsored/.test(t)) return "Industry";
+  if (/workshop/.test(t)) return "Workshop";
+  return "Session";
+}
+
+function typeMeta(type: SessionType) {
+  return SESSION_TYPES.find((s) => s.key === type) ?? SESSION_TYPES[SESSION_TYPES.length - 1];
+}
+
+function toneClasses(tone: string) {
+  switch (tone) {
+    case "danger":
+      return "bg-destructive/10 text-destructive border-destructive/30";
+    case "success":
+      return "bg-success/10 text-success border-success/30";
+    case "warning":
+      return "bg-warning/10 text-warning border-warning/30";
+    case "primary":
+      return "bg-primary/10 text-primary border-primary/30";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
+// ---------- indication ----------
+
+const INDICATION_PATTERNS: [RegExp, string][] = [
+  [/nsclc|non[- ]small cell/i, "NSCLC"],
+  [/sclc|small[- ]cell lung/i, "SCLC"],
+  [/breast/i, "Breast"],
+  [/prostate/i, "Prostate"],
+  [/ovarian/i, "Ovarian"],
+  [/colorectal|crc/i, "Colorectal"],
+  [/pancrea/i, "Pancreatic"],
+  [/gastric|gastro[- ]?esophageal/i, "Gastric / GEJ"],
+  [/hepatocellular|hcc|liver/i, "HCC"],
+  [/melanoma/i, "Melanoma"],
+  [/renal|rcc|kidney/i, "RCC"],
+  [/bladder|urothelial/i, "Urothelial"],
+  [/head and neck|hnscc/i, "Head & Neck"],
+  [/glioblastoma|glioma|brain/i, "CNS / Glioma"],
+  [/leukemia|aml|cll/i, "Leukemia"],
+  [/lymphoma|dlbcl/i, "Lymphoma"],
+  [/myeloma/i, "Multiple Myeloma"],
+  [/cervical/i, "Cervical"],
+  [/endometrial/i, "Endometrial"],
+  [/sarcoma/i, "Sarcoma"],
+];
+
+function deriveIndication(s: Session): string {
+  if (s.therapyArea && s.therapyArea.trim()) return s.therapyArea.trim();
+  for (const [re, label] of INDICATION_PATTERNS) if (re.test(s.title)) return label;
+  return "General Oncology";
+}
+
+// ---------- component ----------
+
+function ConferenceCalendar() {
   const { conference } = useApp();
+  const { data: sessions = [], isLoading } = useSessions();
   const qc = useQueryClient();
 
-  const saveMut = useMutation({
-    mutationFn: (sessions: ExtractedSession[]) =>
-      insertSessions(
-        sessions.map((s) => ({
-          conferenceId: conference.id,
-          title: s.title || "Untitled session",
-          authors: s.authors,
-          affiliation: s.affiliation,
-          day: s.day,
-          time: s.time,
-          room: s.room,
-          trialId: s.trialId,
-          therapyArea: s.therapyArea,
-          asset: s.asset,
-          confidence: s.confidence,
-          sourceUrl,
-        })),
-      ),
-    onSuccess: (inserted) => {
-      qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
-      toast.success(
-        `Saved ${inserted.length} session${inserted.length === 1 ? "" : "s"} to ${conference.acronym} — now available in the Planner`,
-      );
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const [url, setUrl] = useState("");
-  const [sourceUrl, setSourceUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [threshold, setThreshold] = useState(70);
-  const [rows, setRows] = useState<ExtractedSession[]>([]);
-  const [query, setQuery] = useState("");
-  const [onlyFlagged, setOnlyFlagged] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [retrying, setRetrying] = useState<string | null>(null);
-
-  // Conference name search
-  const [nameQuery, setNameQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [autoBuilding, setAutoBuilding] = useState(false);
-  const [autoAttempts, setAutoAttempts] = useState<AutoBuildAttempt[]>([]);
-  const [lastRun, setLastRun] = useState<{
-    fromCache: boolean;
-    cachedAt?: string;
-    distributed: { newSessions: number; postersCreated: number; endpointsCreated: number };
-  } | null>(null);
-  const [history, setHistory] = useState<ExtractionRunRow[]>([]);
-  const [historyOpen, setHistoryOpen] = useState(false);
-
-  // URL check
-  const [check, setCheck] = useState<UrlCheckResult | null>(null);
-  const [checking, setChecking] = useState(false);
-
   const autoBuild = useServerFn(autoBuildFromName);
-  const fetchHistory = useServerFn(getExtractionHistory);
+  const ingest = useServerFn(ingestConferenceUrl);
 
-  async function refreshHistory() {
+  const [importOpen, setImportOpen] = useState(false);
+  const [nameQuery, setNameQuery] = useState("ESMO 2026");
+  const [urlInput, setUrlInput] = useState(ESMO_URL);
+  const [building, setBuilding] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [attempts, setAttempts] = useState<AutoBuildAttempt[]>([]);
+
+  // filters
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<Set<SessionType>>(new Set());
+  const [indFilter, setIndFilter] = useState<Set<string>>(new Set());
+  const [dayFilter, setDayFilter] = useState<string>("all");
+  const [lbaOnly, setLbaOnly] = useState(false);
+
+  const enriched = useMemo(
+    () =>
+      sessions.map((s) => ({
+        ...s,
+        _type: deriveType(s.title),
+        _ind: deriveIndication(s),
+      })),
+    [sessions],
+  );
+
+  const days = useMemo(
+    () => Array.from(new Set(enriched.map((s) => s.day).filter(Boolean))).sort(),
+    [enriched],
+  );
+  const allIndications = useMemo(
+    () => Array.from(new Set(enriched.map((s) => s._ind))).sort(),
+    [enriched],
+  );
+  const allTypes = useMemo(() => {
+    const found = new Set(enriched.map((s) => s._type));
+    return SESSION_TYPES.filter((t) => found.has(t.key)).map((t) => t.key);
+  }, [enriched]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return enriched.filter((s) => {
+      if (q) {
+        const hay = `${s.title} ${s.authors} ${s.room} ${s.trialId ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (typeFilter.size && !typeFilter.has(s._type)) return false;
+      if (indFilter.size && !indFilter.has(s._ind)) return false;
+      if (dayFilter !== "all" && s.day !== dayFilter) return false;
+      if (lbaOnly && s._type !== "Late-Breaking") return false;
+      return true;
+    });
+  }, [enriched, search, typeFilter, indFilter, dayFilter, lbaOnly]);
+
+  // stats
+  const stats = useMemo(() => {
+    const byType = new Map<SessionType, number>();
+    let lba = 0;
+    const rooms = new Set<string>();
+    const presenters = new Set<string>();
+    for (const s of enriched) {
+      byType.set(s._type, (byType.get(s._type) ?? 0) + 1);
+      if (s._type === "Late-Breaking") lba++;
+      if (s.room) rooms.add(s.room);
+      if (s.authors) presenters.add(s.authors.split(",")[0].trim());
+    }
+    return {
+      total: enriched.length,
+      lba,
+      rooms: rooms.size,
+      presenters: presenters.size,
+      days: days.length,
+      indications: allIndications.length,
+      byType,
+    };
+  }, [enriched, days.length, allIndications.length]);
+
+  function toggle<T>(set: Set<T>, val: T, setter: (s: Set<T>) => void) {
+    const n = new Set(set);
+    if (n.has(val)) n.delete(val);
+    else n.add(val);
+    setter(n);
+  }
+
+  async function handleLoadEsmo() {
+    setImporting(true);
+    setAttempts([]);
     try {
-      const rows = await fetchHistory({ data: { conferenceId: conference.id, limit: 8 } });
-      setHistory(rows);
-    } catch {
-      /* non-fatal */
+      const res = await ingest({ data: { url: ESMO_URL } });
+      if (res.sessions.length === 0) {
+        toast.warning(res.warning ?? "No sessions found — try Auto-build instead");
+      } else {
+        // persist via server function autoBuild path? ingest is preview only.
+        // Fall back to autoBuild for persistence + distribution.
+        const persisted = await autoBuild({
+          data: { query: "ESMO 2026", conferenceId: conference.id, refresh: true },
+        });
+        setAttempts(persisted.attempts);
+        toast.success(
+          `Loaded ${persisted.sessions.length} sessions · +${persisted.distributed.newSessions} new`,
+        );
+        qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
+        qc.invalidateQueries({ queryKey: ["posters", conference.id] });
+        qc.invalidateQueries({ queryKey: ["endpoints", conference.id] });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Load failed");
+    } finally {
+      setImporting(false);
     }
   }
 
   async function handleAutoBuild(opts: { refresh?: boolean } = {}) {
-    if (!nameQuery.trim()) {
-      toast.error("Type a conference name first");
-      return;
-    }
-    setAutoBuilding(true);
-    setAutoAttempts([]);
-    setRows([]);
-    setLastRun(null);
+    if (!nameQuery.trim()) return;
+    setBuilding(true);
+    setAttempts([]);
     try {
       const res = await autoBuild({
         data: {
@@ -166,973 +295,628 @@ function Extraction() {
           refresh: opts.refresh ?? false,
         },
       });
-      setAutoAttempts(res.attempts);
-      setLastRun({
-        fromCache: res.fromCache,
-        cachedAt: res.cachedAt,
-        distributed: res.distributed,
-      });
-      if (res.sessions.length > 0 && res.sourceUrl) {
-        setRows(res.sessions);
-        setSourceUrl(res.sourceUrl);
-        setUrl(res.sourceUrl);
-        setExpanded({});
-        const host = new URL(res.sourceUrl).hostname;
-        const d = res.distributed;
-        const distTxt = `+${d.newSessions} sessions, +${d.postersCreated} posters, +${d.endpointsCreated} endpoints`;
-        if (res.fromCache) {
-          toast.success(`Loaded ${res.sessions.length} sessions from cache (${host}) · ${distTxt}`);
-        } else {
-          toast.success(`Auto-built ${res.sessions.length} sessions from ${host} · ${distTxt}`);
-        }
-        // Propagate to the rest of the app
+      setAttempts(res.attempts);
+      if (res.sessions.length > 0) {
+        const host = res.sourceUrl ? new URL(res.sourceUrl).hostname : "source";
+        toast.success(
+          `${res.fromCache ? "Loaded from cache" : "Built"} ${res.sessions.length} sessions from ${host}`,
+        );
         qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
         qc.invalidateQueries({ queryKey: ["posters", conference.id] });
         qc.invalidateQueries({ queryKey: ["endpoints", conference.id] });
-        qc.invalidateQueries({ queryKey: ["conferences"] });
       } else {
         toast.warning(res.warning ?? "No sessions found");
       }
-      void refreshHistory();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Auto-build failed");
     } finally {
-      setAutoBuilding(false);
+      setBuilding(false);
     }
   }
 
-
-  async function handleSuggest() {
-    if (!nameQuery.trim()) return;
-    setSearching(true);
-    setSuggestions([]);
-    try {
-      const res = await suggest({ data: { query: nameQuery.trim() } });
-      setSuggestions(res);
-      if (res.length === 0) toast.warning("No agenda pages found — try a more specific name");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Search failed");
-    } finally {
-      setSearching(false);
-    }
-  }
-
-  async function handleCheck(target?: string) {
-    const u = (target ?? url).trim();
-    if (!u) return;
-    setChecking(true);
-    setCheck(null);
-    try {
-      const res = await checkUrl({ data: { url: u } });
-      setCheck(res);
-      if (res.ok && res.looksLikeAgenda) toast.success("URL looks like a valid agenda page");
-      else if (res.ok) toast.warning(res.reason ?? "Reachable but not clearly an agenda");
-      else toast.error(res.reason ?? "URL is not reachable");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "URL check failed");
-    } finally {
-      setChecking(false);
-    }
-  }
-
-
-  async function handleIngest() {
-    if (!url.trim()) {
-      toast.error("Enter a conference agenda URL first");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await ingest({ data: { url: url.trim() } });
-      setRows(res.sessions);
-      setSourceUrl(res.sourceUrl);
-      setExpanded({});
-      if (res.warning) toast.warning(res.warning);
-      else if (res.sessions.length === 0)
-        toast.warning("No sessions found on that page");
-      else toast.success(`Extracted ${res.sessions.length} sessions`);
-    } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Ingestion failed — check the URL",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function updateField(
-    id: string,
-    field: keyof ExtractedSession,
-    value: string,
-    confidence?: number,
-  ) {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              [field]: value,
-              fieldConfidence: {
-                ...r.fieldConfidence,
-                ...(confidence != null ? { [field]: confidence } : {}),
-              },
-            }
-          : r,
-      ),
-    );
-  }
-
-  async function handleRetry(row: ExtractedSession, field: string) {
-    setRetrying(`${row.id}:${field}`);
-    try {
-      const res = await retryField({
-        data: { url: sourceUrl, sessionTitle: row.title, field },
-      });
-      updateField(row.id, field as keyof ExtractedSession, res.value, res.confidence);
-      if (res.confidence >= threshold)
-        toast.success(`Re-extracted "${field}" (${res.confidence}%)`);
-      else toast.warning(`"${field}" still low confidence (${res.confidence}%)`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Retry failed");
-    } finally {
-      setRetrying(null);
-    }
-  }
-
-  const lowFieldsOf = (s: ExtractedSession) =>
-    EDITABLE_FIELDS.filter(
-      (f) => (s.fieldConfidence[f.key as string] ?? 100) < threshold,
-    );
-
-  const filtered = useMemo(
-    () =>
-      rows.filter((s) => {
-        if (onlyFlagged && lowFieldsOf(s).length === 0) return false;
-        if (query && !s.title.toLowerCase().includes(query.toLowerCase()))
-          return false;
-        return true;
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, query, onlyFlagged, threshold],
-  );
-
-  const stats = useMemo(() => {
-    const total = rows.length;
-    const flagged = rows.filter((s) => lowFieldsOf(s).length > 0).length;
-    const avg = total
-      ? Math.round(rows.reduce((a, s) => a + s.confidence, 0) / total)
-      : 0;
-    const clean = total - flagged;
-    return { total, flagged, clean, avg };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, threshold]);
-
-  // Duplicate detection: group by trialId or normalized-title similarity
-  const duplicateGroups = useMemo(() => {
-    const norm = (s: string) =>
-      s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    const groups: ExtractedSession[][] = [];
-    const used = new Set<string>();
-    for (const a of rows) {
-      if (used.has(a.id)) continue;
-      const group = [a];
-      used.add(a.id);
-      const aTitle = norm(a.title);
-      const aTrial = a.trialId?.trim().toLowerCase();
-      for (const b of rows) {
-        if (used.has(b.id) || b.id === a.id) continue;
-        const bTitle = norm(b.title);
-        const bTrial = b.trialId?.trim().toLowerCase();
-        const trialMatch = !!aTrial && !!bTrial && aTrial === bTrial;
-        const titleMatch =
-          aTitle.length > 15 &&
-          bTitle.length > 15 &&
-          (aTitle === bTitle ||
-            aTitle.includes(bTitle) ||
-            bTitle.includes(aTitle));
-        if (trialMatch || titleMatch) {
-          group.push(b);
-          used.add(b.id);
-        }
-      }
-      if (group.length > 1) groups.push(group);
-    }
-    return groups;
-  }, [rows]);
-
-  function mergeGroup(group: ExtractedSession[]) {
-    // Merge into the row with highest overall confidence; per field pick highest-conf non-empty value.
-    const sorted = [...group].sort((a, b) => b.confidence - a.confidence);
-    const primary = sorted[0];
-    const merged: ExtractedSession = { ...primary };
-    for (const f of EDITABLE_FIELDS) {
-      let bestVal = (primary[f.key] as string) ?? "";
-      let bestConf = primary.fieldConfidence[f.key as string] ?? 0;
-      for (const s of group) {
-        const v = (s[f.key] as string) ?? "";
-        const c = s.fieldConfidence[f.key as string] ?? 0;
-        if (v && (c > bestConf || !bestVal)) {
-          bestVal = v;
-          bestConf = c;
-        }
-      }
-      (merged as unknown as Record<string, unknown>)[f.key as string] = bestVal;
-      merged.fieldConfidence[f.key as string] = bestConf;
-    }
-    const removeIds = new Set(group.map((g) => g.id).filter((id) => id !== primary.id));
-    setRows((prev) =>
-      prev.filter((r) => !removeIds.has(r.id)).map((r) => (r.id === primary.id ? merged : r)),
-    );
-    toast.success(`Merged ${group.length} duplicates into "${merged.title.slice(0, 40)}…"`);
-  }
-
-  function dismissGroup(group: ExtractedSession[]) {
-    // Mark as not-a-duplicate by nudging one title so it won't re-group.
-    const [, ...rest] = group;
-    setRows((prev) =>
-      prev.map((r) =>
-        rest.find((x) => x.id === r.id)
-          ? { ...r, title: r.title + " " }
-          : r,
-      ),
-    );
-  }
-
+  const hasData = enriched.length > 0;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow="Module A · Pre-Conference"
-        title="AI Extraction"
-        description="Ingest a live conference agenda URL, extract every session field with per-field confidence scoring, and edit or re-run low-confidence values."
+        title="Conference Calendar"
+        description="One structured view of every session, poster, and late-breaker — filter, plan and prepare in minutes."
         actions={
-          rows.length > 0 ? (
+          hasData ? (
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={handleIngest} disabled={loading}>
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4" />
-                )}
-                Re-run extraction
+              <Button variant="outline" asChild>
+                <Link to="/pre/planner">
+                  Open Planner <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
               </Button>
               <Button
-                onClick={() => saveMut.mutate(rows)}
-                disabled={saveMut.isPending}
+                variant="secondary"
+                onClick={() => handleAutoBuild({ refresh: true })}
+                disabled={building}
               >
-                {saveMut.isPending ? (
+                {building ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <RotateCw className="h-4 w-4" />
                 )}
-                Save {rows.length} to {conference.acronym}
+                Refresh
               </Button>
             </div>
           ) : undefined
         }
       />
 
-      {/* Ingestion command panel */}
+      {/* Hero */}
       <Card className="mb-6 overflow-hidden border-primary/20">
-        <div className="flex items-center gap-2.5 border-b bg-gradient-to-r from-primary/10 via-accent/40 to-transparent px-4 py-3">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold leading-tight">Live agenda ingestion</p>
-            <p className="truncate text-xs text-muted-foreground">
-              Fetches the page in real time and extracts structured sessions with AI.
-            </p>
-          </div>
-        </div>
-        <CardContent className="space-y-5 p-4">
-          {/* Conference-name search → suggestions */}
-          <div>
-            <Label
-              htmlFor="conf-name"
-              className="mb-1.5 block text-xs font-medium text-muted-foreground"
-            >
-              Find a conference by name
-            </Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="conf-name"
-                  placeholder="e.g. ESMO 2026, ASH 2026, ASCO 2027"
-                  className="pl-8"
-                  value={nameQuery}
-                  onChange={(e) => setNameQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAutoBuild()}
-                />
+        <div className="relative bg-gradient-to-br from-primary via-primary to-primary/70 px-6 py-8 text-primary-foreground">
+          <div className="absolute inset-0 opacity-10 [background:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary-foreground/70">
+                Active conference
+              </p>
+              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                {conference.name}
+              </h2>
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-primary-foreground/85">
+                <span className="inline-flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  {conference.startDate} → {conference.endDate}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" />
+                  {conference.location}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  {conference.delegateCount} delegates
+                </span>
               </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {conference.therapyAreas.slice(0, 6).map((ta) => (
+                  <Badge
+                    key={ta}
+                    variant="secondary"
+                    className="border-white/20 bg-white/10 text-primary-foreground hover:bg-white/20"
+                  >
+                    {ta}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            {!hasData && !isLoading && (
               <Button
-                type="button"
-                onClick={() => handleAutoBuild()}
-                disabled={autoBuilding || !nameQuery.trim()}
-              >
-                {autoBuilding ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4" />
-                )}
-                Auto-build sessions
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleAutoBuild({ refresh: true })}
-                disabled={autoBuilding || !nameQuery.trim()}
-                title="Ignore cache and re-scrape the conference site"
-              >
-                <RotateCw className={"h-4 w-4 " + (autoBuilding ? "animate-spin" : "")} />
-                Refresh
-              </Button>
-              <Button
-                type="button"
+                size="lg"
                 variant="secondary"
-                onClick={handleSuggest}
-                disabled={searching}
+                onClick={handleLoadEsmo}
+                disabled={importing}
+                className="shadow-lg"
               >
-                {searching ? (
+                {importing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                Suggest URLs
+                Load {conference.acronym} program
               </Button>
-            </div>
-            <div className="mt-1.5 flex items-center justify-between gap-2">
-              <p className="text-[11px] text-muted-foreground">
-                Auto-build reuses the cached extraction when available. Refresh re-scrapes the site
-                for newly-released sessions and abstracts, then pushes them into the Planner,
-                Posters, and Endpoints modules.
-              </p>
-              <button
-                type="button"
-                className="shrink-0 text-[11px] font-medium text-primary hover:underline"
-                onClick={() => {
-                  setHistoryOpen((v) => !v);
-                  if (!historyOpen) void refreshHistory();
-                }}
-              >
-                {historyOpen ? "Hide history" : "View history"}
-              </button>
-            </div>
-            {lastRun && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border bg-primary/5 px-3 py-2 text-xs">
-                {lastRun.fromCache ? (
-                  <Badge variant="secondary" className="gap-1">
-                    <ShieldCheck className="h-3 w-3" /> Cached
-                    {lastRun.cachedAt && (
-                      <span className="text-muted-foreground">
-                        · {new Date(lastRun.cachedAt).toLocaleString()}
-                      </span>
-                    )}
-                  </Badge>
-                ) : (
-                  <Badge className="gap-1">
-                    <Sparkles className="h-3 w-3" /> Fresh scrape
-                  </Badge>
-                )}
-                <span className="text-muted-foreground">Distributed:</span>
-                <Badge variant="outline">+{lastRun.distributed.newSessions} sessions</Badge>
-                <Badge variant="outline">+{lastRun.distributed.postersCreated} posters</Badge>
-                <Badge variant="outline">+{lastRun.distributed.endpointsCreated} endpoints</Badge>
-              </div>
-            )}
-            {historyOpen && (
-              <div className="mt-2 space-y-1 rounded-lg border bg-muted/30 p-2">
-                <div className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Recent runs for {conference.acronym}
-                </div>
-                {history.length === 0 ? (
-                  <div className="p-2 text-xs text-muted-foreground">No runs yet.</div>
-                ) : (
-                  history.map((h) => (
-                    <div
-                      key={h.id}
-                      className="flex items-start gap-2 rounded-md p-1.5 text-xs"
-                    >
-                      {h.status === "ok" ? (
-                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-                      ) : h.status === "cached" ? (
-                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                      ) : h.status === "failed" ? (
-                        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                      ) : (
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">
-                          {h.query ?? "—"}{" "}
-                          <span className="text-muted-foreground">
-                            · {new Date(h.createdAt).toLocaleString()}
-                          </span>
-                        </div>
-                        {h.sourceUrl && (
-                          <div className="truncate text-muted-foreground">{h.sourceUrl}</div>
-                        )}
-                        {h.reason && <div className="text-destructive/80">{h.reason}</div>}
-                      </div>
-                      <div className="shrink-0 text-right text-[10px] font-medium text-muted-foreground">
-                        <div>
-                          {h.sessionCount} sess · +{h.newSessions} new
-                        </div>
-                        <div>
-                          +{h.postersCreated}p · +{h.endpointsCreated}ep
-                          {h.fromCache && " · cache"}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-            {autoAttempts.length > 0 && (
-              <div className="mt-2 space-y-1 rounded-lg border bg-muted/30 p-2">
-                <div className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Auto-build attempts
-                </div>
-                {autoAttempts.map((a) => (
-                  <div key={a.url} className="flex items-start gap-2 rounded-md p-1.5 text-xs">
-                    {a.status === "ok" ? (
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-                    ) : a.status === "empty" ? (
-                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                    ) : (
-                      <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{a.title}</div>
-                      <div className="truncate text-muted-foreground">{a.url}</div>
-                      {a.reason && <div className="text-destructive/80">{a.reason}</div>}
-                    </div>
-                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
-                      {a.status === "ok" ? `${a.sessions} sessions` : a.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {suggestions.length > 0 && (
-              <div className="mt-2 space-y-1.5 rounded-lg border bg-muted/30 p-2">
-                {suggestions.map((s) => (
-                  <button
-                    key={s.url}
-                    type="button"
-                    onClick={() => {
-                      setUrl(s.url);
-                      setCheck(null);
-                      void handleCheck(s.url);
-                    }}
-                    className="group flex w-full items-start gap-2 rounded-md p-2 text-left hover:bg-background"
-                  >
-                    <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{s.title}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {s.url}
-                      </div>
-                    </div>
-                    <span className="shrink-0 text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100">
-                      Use →
-                    </span>
-                  </button>
-                ))}
-              </div>
             )}
           </div>
+        </div>
 
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
-            <div className="relative min-w-0">
-              <Label
-                htmlFor="agenda-url"
-                className="mb-1.5 block text-xs font-medium text-muted-foreground"
-              >
-                Conference agenda URL
-              </Label>
-              <Link2 className="pointer-events-none absolute left-2.5 top-[34px] h-4 w-4 text-muted-foreground" />
-              <Input
-                id="agenda-url"
-                type="url"
-                inputMode="url"
-                placeholder="https://conference.org/2025/agenda"
-                className="pl-8"
-                value={url}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  setCheck(null);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleIngest()}
-              />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleCheck()}
-              disabled={checking || !url.trim()}
-              className="shrink-0"
-            >
-              {checking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="h-4 w-4" />
-              )}
-              Check URL
-            </Button>
-            <Button onClick={handleIngest} disabled={loading} className="shrink-0">
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Ingesting…
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-4 w-4" /> Ingest &amp; extract
-                </>
-              )}
-            </Button>
+        {/* KPI strip */}
+        {hasData && (
+          <div className="grid grid-cols-2 divide-y border-t sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-6">
+            <Stat label="Sessions" value={stats.total} icon={Radio} />
+            <Stat
+              label="Late-Breaking"
+              value={stats.lba}
+              icon={Flame}
+              accent="text-destructive"
+            />
+            <Stat label="Days" value={stats.days} icon={Calendar} />
+            <Stat label="Indications" value={stats.indications} icon={Layers} />
+            <Stat label="Rooms" value={stats.rooms} icon={MapPin} />
+            <Stat label="Presenters" value={stats.presenters} icon={Users} />
           </div>
-
-          {check && (
-            <div
-              className={
-                "flex items-start gap-2 rounded-md border px-3 py-2 text-xs " +
-                (check.ok && check.looksLikeAgenda
-                  ? "border-success/30 bg-success/5 text-success"
-                  : check.ok
-                    ? "border-warning/30 bg-warning/5 text-warning-foreground"
-                    : "border-destructive/30 bg-destructive/5 text-destructive")
-              }
-            >
-              {check.ok && check.looksLikeAgenda ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              ) : check.ok ? (
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              ) : (
-                <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              )}
-              <div className="min-w-0">
-                <div className="font-medium">
-                  {check.ok && check.looksLikeAgenda
-                    ? "Looks like a valid agenda page"
-                    : check.ok
-                      ? "Reachable, but not clearly an agenda"
-                      : "URL is not reachable"}
-                </div>
-                <div className="text-[11px] opacity-80">
-                  HTTP {check.status || "—"} · {check.reason}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] sm:items-center">
-            <div>
-              <Label className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Confidence threshold</span>
-                <span className="font-mono tabular-nums text-foreground">
-                  {threshold}%
-                </span>
-              </Label>
-              <Slider
-                aria-label="Confidence threshold"
-                value={[threshold]}
-                min={40}
-                max={95}
-                step={5}
-                onValueChange={(v) => setThreshold(v[0])}
-              />
-            </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Fields below{" "}
-              <span className="font-medium text-foreground">{threshold}%</span> are
-              flagged for analyst review. No values are inferred — an empty field means
-              it was not stated in the source page.
-            </p>
-          </div>
-        </CardContent>
+        )}
       </Card>
 
-      {/* Loading skeleton */}
-      {loading && rows.length === 0 && (
-        <div className="space-y-3" aria-busy="true" aria-label="Extracting sessions">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Fetching page and extracting sessions…
-          </div>
-          <Card>
-            <CardContent className="space-y-3 p-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="h-4 w-4 rounded" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3 w-1/3" />
+      {/* Import / refresh (collapsible, compact) */}
+      <Collapsible open={importOpen} onOpenChange={setImportOpen} className="mb-6">
+        <Card>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center justify-between px-4 py-3 text-left">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <Database className="h-4 w-4 text-primary" />
+                Data source
+                <span className="text-xs font-normal text-muted-foreground">
+                  {hasData
+                    ? `${stats.total} sessions loaded · click to refresh or import another program`
+                    : "Import a live program to populate the calendar"}
+                </span>
+              </span>
+              <ChevronDown
+                className={
+                  "h-4 w-4 text-muted-foreground transition-transform " +
+                  (importOpen ? "rotate-180" : "")
+                }
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-4 border-t px-4 py-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Auto-build by conference name
+                  </Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-8"
+                        placeholder="e.g. ESMO 2026"
+                        value={nameQuery}
+                        onChange={(e) => setNameQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAutoBuild()}
+                      />
+                    </div>
+                    <Button onClick={() => handleAutoBuild()} disabled={building}>
+                      {building ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4" />
+                      )}
+                      Build
+                    </Button>
                   </div>
-                  <Skeleton className="h-6 w-16 rounded-full" />
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {rows.length === 0 && !loading && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-accent text-primary">
-              <Link2 className="h-6 w-6" />
-            </span>
-            <p className="text-base font-semibold">No agenda ingested yet</p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Paste a real conference agenda URL above. The page is fetched live and AI
-              extracts structured sessions with per-field confidence scoring.
-            </p>
-          </CardContent>
+                <div>
+                  <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Import from URL
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      placeholder="https://…/programme"
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={handleLoadEsmo}
+                      disabled={importing}
+                    >
+                      {importing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4" />
+                      )}
+                      Import
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {attempts.length > 0 && (
+                <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                  <p className="mb-1.5 font-medium text-foreground">Recent attempts</p>
+                  <ul className="space-y-1">
+                    {attempts.map((a, i) => (
+                      <li key={i} className="flex items-center justify-between gap-2">
+                        <span className="truncate text-muted-foreground">{a.url}</span>
+                        <span className="shrink-0">
+                          {a.status === "ok" || a.status === "cached" ? (
+                            <Badge variant="secondary" className="bg-success/10 text-success">
+                              {a.sessions} sessions
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-muted">
+                              {a.status}
+                            </Badge>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
         </Card>
-      )}
+      </Collapsible>
 
-      {rows.length > 0 && (
-        <div className="animate-fade-in space-y-5">
-          {/* Summary strip */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard
-              icon={<ListChecks className="h-4 w-4" />}
-              label="Sessions extracted"
-              value={stats.total}
-            />
-            <StatCard
-              icon={<ShieldCheck className="h-4 w-4" />}
-              label="Above threshold"
-              value={stats.clean}
-              tone="positive"
-            />
-            <StatCard
-              icon={<AlertTriangle className="h-4 w-4" />}
-              label="Flagged for review"
-              value={stats.flagged}
-              tone={stats.flagged > 0 ? "warning" : "default"}
-            />
-            <StatCard
-              icon={<Gauge className="h-4 w-4" />}
-              label="Avg. confidence"
-              value={`${stats.avg}%`}
-              progress={stats.avg}
-            />
+      {/* Body */}
+      {isLoading ? (
+        <div className="grid gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      ) : !hasData ? (
+        <EmptyState onLoad={handleLoadEsmo} loading={importing} />
+      ) : (
+        <>
+          {/* Type breakdown chips */}
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {allTypes.map((t) => {
+              const meta = typeMeta(t);
+              const active = typeFilter.has(t);
+              return (
+                <button
+                  key={t}
+                  onClick={() => toggle(typeFilter, t, setTypeFilter)}
+                  className={
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                    (active
+                      ? toneClasses(meta.tone) + " ring-2 ring-primary/30"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted")
+                  }
+                >
+                  <meta.icon className="h-3 w-3" />
+                  {t}
+                  <span className="ml-0.5 opacity-70">{stats.byType.get(t) ?? 0}</span>
+                </button>
+              );
+            })}
+            {(typeFilter.size > 0 || indFilter.size > 0 || lbaOnly || dayFilter !== "all") && (
+              <button
+                onClick={() => {
+                  setTypeFilter(new Set());
+                  setIndFilter(new Set());
+                  setLbaOnly(false);
+                  setDayFilter("all");
+                }}
+                className="ml-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-[200px] flex-1">
+          {/* Filter bar */}
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[240px] flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search sessions…"
-                aria-label="Search sessions"
                 className="pl-8"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search title, presenter, room, trial ID…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4" /> Indication
+                  {indFilter.size > 0 && (
+                    <Badge variant="secondary" className="ml-1">
+                      {indFilter.size}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-80 overflow-auto">
+                <DropdownMenuLabel>Filter by indication</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {allIndications.map((i) => (
+                  <DropdownMenuCheckboxItem
+                    key={i}
+                    checked={indFilter.has(i)}
+                    onCheckedChange={() => toggle(indFilter, i, setIndFilter)}
+                  >
+                    {i}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Calendar className="h-4 w-4" />
+                  {dayFilter === "all" ? "All days" : dayFilter}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuCheckboxItem
+                  checked={dayFilter === "all"}
+                  onCheckedChange={() => setDayFilter("all")}
+                >
+                  All days
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                {days.map((d) => (
+                  <DropdownMenuCheckboxItem
+                    key={d}
+                    checked={dayFilter === d}
+                    onCheckedChange={() => setDayFilter(d)}
+                  >
+                    {d}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
-              variant={onlyFlagged ? "default" : "outline"}
-              onClick={() => setOnlyFlagged((v) => !v)}
-              aria-pressed={onlyFlagged}
+              variant={lbaOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setLbaOnly((v) => !v)}
             >
-              <AlertTriangle className="h-4 w-4" /> Flagged ({stats.flagged})
+              <Flame className="h-4 w-4" />
+              Late-breaking only
             </Button>
+            <span className="ml-auto text-xs text-muted-foreground">
+              Showing <b className="text-foreground">{filtered.length}</b> of {stats.total}
+            </span>
           </div>
 
-          {/* Duplicate suggestions */}
-          {duplicateGroups.length > 0 && (
-            <Card className="border-warning/40 bg-warning/5">
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-center gap-2">
-                  <Copy className="h-4 w-4 text-warning-foreground" />
-                  <p className="text-sm font-semibold">
-                    {duplicateGroups.length} possible duplicate group
-                    {duplicateGroups.length > 1 ? "s" : ""} detected
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  {duplicateGroups.map((g, i) => (
-                    <div
-                      key={i}
-                      className="rounded-md border bg-background p-3 text-sm"
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{g[0].title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {g.length} rows · matched by{" "}
-                            {g[0].trialId &&
-                            g.every((x) => x.trialId === g[0].trialId)
-                              ? `trial ID ${g[0].trialId}`
-                              : "title similarity"}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 gap-1">
-                          <Button
-                            size="sm"
-                            onClick={() => mergeGroup(g)}
-                          >
-                            <Merge className="h-3.5 w-3.5" /> Merge (keep best)
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => dismissGroup(g)}
-                            aria-label="Not a duplicate"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                      <ul className="space-y-1 text-xs text-muted-foreground">
-                        {g.map((s) => (
-                          <li key={s.id} className="flex items-center gap-2">
-                            <span className="font-mono tabular-nums">
-                              {s.confidence}%
-                            </span>
-                            <span className="truncate">
-                              {[s.day, s.time, s.room, s.authors]
-                                .filter(Boolean)
-                                .join(" · ") || "—"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Views */}
+          <Tabs defaultValue="timeline">
+            <TabsList>
+              <TabsTrigger value="timeline">
+                <Clock className="mr-1 h-4 w-4" /> Timeline
+              </TabsTrigger>
+              <TabsTrigger value="type">
+                <Layers className="mr-1 h-4 w-4" /> By Type
+              </TabsTrigger>
+              <TabsTrigger value="indication">
+                <Radio className="mr-1 h-4 w-4" /> By Indication
+              </TabsTrigger>
+            </TabsList>
 
-
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8" />
-                    <TableHead>Session</TableHead>
-                    <TableHead className="hidden md:table-cell">Time / Room</TableHead>
-                    <TableHead className="hidden lg:table-cell">Trial ID</TableHead>
-                    <TableHead className="text-right">Confidence</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((s) => {
-                    const isOpen = expanded[s.id];
-                    const lowFields = lowFieldsOf(s);
-                    return (
-                      <Fragment key={s.id}>
-                        <TableRow
-                          className={
-                            "cursor-pointer transition-colors" +
-                            (lowFields.length > 0
-                              ? " bg-destructive/[0.04] hover:bg-destructive/[0.07]"
-                              : "")
-                          }
-                          onClick={() =>
-                            setExpanded((p) => ({ ...p, [s.id]: !p[s.id] }))
-                          }
-                        >
-                          <TableCell>
-                            {isOpen ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </TableCell>
-                          <TableCell className="max-w-[340px]">
-                            <div className="font-medium leading-snug">
-                              {s.title || (
-                                <span className="italic text-muted-foreground">
-                                  Untitled
-                                </span>
-                              )}
-                            </div>
-                            <div className="truncate text-xs text-muted-foreground">
-                              {[s.authors, s.affiliation].filter(Boolean).join(" · ") ||
-                                "—"}
-                            </div>
-                            {lowFields.length > 0 && (
-                              <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                                <AlertTriangle className="h-3 w-3" />
-                                {lowFields.length} low-confidence field
-                                {lowFields.length > 1 ? "s" : ""}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="hidden whitespace-nowrap text-sm text-muted-foreground md:table-cell">
-                            {s.day || "—"}
-                            <br />
-                            {[s.time, s.room].filter(Boolean).join(" · ") || "—"}
-                          </TableCell>
-                          <TableCell className="hidden font-mono text-xs tabular-nums lg:table-cell">
-                            {s.trialId || "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ConfidenceBadge score={s.confidence} scale={100} />
-                          </TableCell>
-                        </TableRow>
-                        {isOpen && (
-                          <TableRow className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell />
-                            <TableCell colSpan={4} className="py-4">
-                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                {EDITABLE_FIELDS.map((f) => {
-                                  const conf =
-                                    s.fieldConfidence[f.key as string] ?? 100;
-                                  const isLow = conf < threshold;
-                                  const key = `${s.id}:${f.key}`;
-                                  return (
-                                    <div key={f.key} className="space-y-1">
-                                      <div className="flex items-center justify-between">
-                                        <Label
-                                          htmlFor={key}
-                                          className="text-xs text-muted-foreground"
-                                        >
-                                          {f.label}
-                                        </Label>
-                                        <span
-                                          className={
-                                            "text-[10px] font-medium tabular-nums " +
-                                            (isLow
-                                              ? "text-destructive"
-                                              : "text-muted-foreground")
-                                          }
-                                        >
-                                          {conf}%
-                                        </span>
-                                      </div>
-                                      <div className="flex gap-1">
-                                        <Input
-                                          id={key}
-                                          value={(s[f.key] as string) ?? ""}
-                                          placeholder="Not stated in source"
-                                          onChange={(e) =>
-                                            updateField(
-                                              s.id,
-                                              f.key,
-                                              e.target.value,
-                                              100,
-                                            )
-                                          }
-                                          className={
-                                            "h-8 text-sm " +
-                                            (isLow
-                                              ? "border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/40"
-                                              : "")
-                                          }
-                                        />
-                                        {isLow && (
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                size="icon"
-                                                variant="outline"
-                                                className="h-8 w-8 shrink-0"
-                                                aria-label={`Re-run AI extraction for ${f.label}`}
-                                                disabled={retrying === key}
-                                                onClick={() =>
-                                                  handleRetry(s, f.key as string)
-                                                }
-                                              >
-                                                {retrying === key ? (
-                                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : (
-                                                  <RotateCw className="h-3.5 w-3.5" />
-                                                )}
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              Re-run AI extraction for this field
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {s.therapyArea || "Unclassified"}
-                                </Badge>
-                                {s.asset && (
-                                  <Badge variant="outline" className="text-[10px]">
-                                    {s.asset}
-                                  </Badge>
-                                )}
-                                {lowFields.length === 0 && (
-                                  <span className="ml-auto inline-flex items-center gap-1 font-medium text-success">
-                                    <Check className="h-3.5 w-3.5" /> All fields above
-                                    threshold
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                  {filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        No sessions match your filters.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          <p className="text-xs text-muted-foreground">
-            Showing {filtered.length} of {rows.length} extracted sessions from{" "}
-            <span className="break-all font-mono">{sourceUrl}</span> · click a row to
-            edit fields · low-confidence fields can be re-run individually.
-          </p>
-        </div>
+            <TabsContent value="timeline" className="mt-4">
+              <TimelineView sessions={filtered} />
+            </TabsContent>
+            <TabsContent value="type" className="mt-4">
+              <GroupedView
+                sessions={filtered}
+                keyOf={(s) => s._type}
+                order={SESSION_TYPES.map((t) => t.key)}
+              />
+            </TabsContent>
+            <TabsContent value="indication" className="mt-4">
+              <GroupedView sessions={filtered} keyOf={(s) => s._ind} />
+            </TabsContent>
+          </Tabs>
+        </>
       )}
     </div>
   );
 }
 
-function StatCard({
-  icon,
+// ---------- helpers ----------
+
+type EnrichedSession = Session & { _type: SessionType; _ind: string };
+
+function Stat({
   label,
   value,
-  tone = "default",
-  progress,
+  icon: Icon,
+  accent,
 }: {
-  icon: React.ReactNode;
   label: string;
-  value: string | number;
-  tone?: "default" | "positive" | "warning";
-  progress?: number;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  accent?: string;
 }) {
-  const toneClass =
-    tone === "positive"
-      ? "text-success"
-      : tone === "warning"
-        ? "text-destructive"
-        : "text-primary";
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <span className={toneClass}>{icon}</span>
-          <span className="truncate">{label}</span>
+    <div className="flex items-center gap-3 px-4 py-3">
+      <span
+        className={
+          "grid h-9 w-9 place-items-center rounded-lg bg-muted " + (accent ?? "text-primary")
+        }
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div>
+        <p className="text-lg font-semibold leading-none">{value}</p>
+        <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ onLoad, loading }: { onLoad: () => void; loading: boolean }) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
+        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <Sparkles className="h-7 w-7" />
+        </span>
+        <div>
+          <h3 className="font-display text-xl font-semibold">
+            Load the ESMO 2026 program in one click
+          </h3>
+          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            Pharmalix will fetch the official programme, extract every session with AI, and
+            organize it by type, day, and indication — better than the source calendar.
+          </p>
         </div>
-        <p className="mt-1.5 text-2xl font-semibold tabular-nums">{value}</p>
-        {progress != null && (
-          <Progress value={progress} className="mt-2 h-1.5" />
-        )}
+        <Button size="lg" onClick={onLoad} disabled={loading}>
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Wand2 className="h-4 w-4" />
+          )}
+          Import from cslide.ctimeetingtech.com
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Extraction may take 30-60 seconds on first run.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TimelineView({ sessions }: { sessions: EnrichedSession[] }) {
+  const byDay = useMemo(() => {
+    const map = new Map<string, EnrichedSession[]>();
+    for (const s of sessions) {
+      const d = s.day || "Unscheduled";
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(s);
+    }
+    for (const arr of map.values())
+      arr.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [sessions]);
+
+  if (byDay.length === 0) return <EmptyResult />;
+
+  return (
+    <div className="space-y-6">
+      {byDay.map(([day, list]) => (
+        <div key={day}>
+          <div className="mb-2 flex items-center gap-2">
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-primary">
+              {day}
+            </h3>
+            <span className="text-xs text-muted-foreground">{list.length} sessions</span>
+            <div className="ml-2 h-px flex-1 bg-border" />
+          </div>
+          <div className="grid gap-2">
+            {list.map((s) => (
+              <SessionRow key={s.id} s={s} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GroupedView({
+  sessions,
+  keyOf,
+  order,
+}: {
+  sessions: EnrichedSession[];
+  keyOf: (s: EnrichedSession) => string;
+  order?: string[];
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, EnrichedSession[]>();
+    for (const s of sessions) {
+      const k = keyOf(s);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(s);
+    }
+    const entries = Array.from(map.entries());
+    if (order) {
+      entries.sort(
+        ([a], [b]) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b),
+      );
+    } else {
+      entries.sort((a, b) => b[1].length - a[1].length);
+    }
+    return entries;
+  }, [sessions, keyOf, order]);
+
+  if (grouped.length === 0) return <EmptyResult />;
+
+  return (
+    <div className="space-y-6">
+      {grouped.map(([label, list]) => (
+        <div key={label}>
+          <div className="mb-2 flex items-center gap-2">
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-foreground">
+              {label}
+            </h3>
+            <Badge variant="secondary">{list.length}</Badge>
+            <div className="ml-2 h-px flex-1 bg-border" />
+          </div>
+          <div className="grid gap-2">
+            {list.map((s) => (
+              <SessionRow key={s.id} s={s} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SessionRow({ s }: { s: EnrichedSession }) {
+  const meta = typeMeta(s._type);
+  return (
+    <Card className="group border transition-colors hover:border-primary/40 hover:shadow-sm">
+      <CardContent className="flex items-start gap-4 p-3">
+        {/* time column */}
+        <div className="w-20 shrink-0 border-r pr-3 text-center">
+          <p className="font-mono text-sm font-semibold tabular-nums text-foreground">
+            {s.time || "—"}
+          </p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {s.day || "TBA"}
+          </p>
+        </div>
+        {/* main */}
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+            <span
+              className={
+                "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+                toneClasses(meta.tone)
+              }
+            >
+              <meta.icon className="h-3 w-3" />
+              {s._type}
+            </span>
+            <Badge variant="outline" className="text-[10px]">
+              {s._ind}
+            </Badge>
+            {s.trialId && (
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                {s.trialId}
+              </Badge>
+            )}
+            {s.room && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                {s.room}
+              </span>
+            )}
+          </div>
+          <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
+            {s.title}
+          </p>
+          {s.authors && (
+            <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+              {s.authors}
+              {s.affiliation && <span className="ml-1 opacity-70">· {s.affiliation}</span>}
+            </p>
+          )}
+        </div>
+        {/* actions */}
+        <div className="flex shrink-0 items-center gap-1">
+          {s.sourceUrl && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" asChild>
+                  <a href={s.sourceUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open on conference site</TooltipContent>
+            </Tooltip>
+          )}
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/pre/planner">
+              Plan <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyResult() {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="py-10 text-center text-sm text-muted-foreground">
+        No sessions match the current filters.
       </CardContent>
     </Card>
   );
