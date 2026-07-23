@@ -58,6 +58,7 @@ import {
   MapPin,
   X,
   ChevronsUpDown,
+  ExternalLink,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
@@ -443,7 +444,7 @@ function Planner() {
         <Card>
           <CardContent className="p-0">
             <div className="max-h-[62vh] overflow-auto">
-              <Table className="w-full min-w-[1800px] table-fixed">
+              <Table className="w-full min-w-[1920px] table-fixed">
                 <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="w-[56px]">#</TableHead>
@@ -458,6 +459,7 @@ function Planner() {
                     <TableHead className="w-[150px]">Related / Asset</TableHead>
                     <TableHead className="w-[140px]">Clinical Status</TableHead>
                     <TableHead className="w-[130px]">Priority</TableHead>
+                    <TableHead className="w-[80px] text-center">Link</TableHead>
                     <TableHead className="w-[70px] text-right">Add</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -592,6 +594,28 @@ function Planner() {
                             <SelectItem value="Low">Low</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell className="pt-2 text-center">
+                        {s.sourceUrl ? (
+                          <Button
+                            asChild
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title={`Open session on ${(() => { try { return new URL(s.sourceUrl).hostname; } catch { return "source"; } })()}`}
+                          >
+                            <a
+                              href={s.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Open session on conference site"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="pt-2 text-right">
                         <Button
