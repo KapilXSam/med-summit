@@ -169,6 +169,7 @@ function ConferenceCalendar() {
   const { conference } = useApp();
   const { data: sessions = [], isLoading } = useSessions();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const autoBuild = useServerFn(autoBuildFromName);
   const ingest = useServerFn(ingestConferenceUrl);
