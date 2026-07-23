@@ -44,6 +44,7 @@ export interface Session {
   assignedTo?: string;
   conflict?: boolean;
   kiqId?: string;
+  sourceUrl?: string;
 }
 
 export interface Poster {
