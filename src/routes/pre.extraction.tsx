@@ -35,9 +35,11 @@ import {
   suggestConferenceUrls,
   checkAgendaUrl,
   autoBuildFromName,
+  getExtractionHistory,
   type UrlSuggestion,
   type UrlCheckResult,
   type AutoBuildAttempt,
+  type ExtractionRunRow,
 } from "@/lib/extraction.functions";
 import { EDITABLE_FIELDS, type ExtractedSession } from "@/lib/extraction-types";
 import {
@@ -123,13 +125,31 @@ function Extraction() {
   const [searching, setSearching] = useState(false);
   const [autoBuilding, setAutoBuilding] = useState(false);
   const [autoAttempts, setAutoAttempts] = useState<AutoBuildAttempt[]>([]);
+  const [lastRun, setLastRun] = useState<{
+    fromCache: boolean;
+    cachedAt?: string;
+    distributed: { newSessions: number; postersCreated: number; endpointsCreated: number };
+  } | null>(null);
+  const [history, setHistory] = useState<ExtractionRunRow[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // URL check
   const [check, setCheck] = useState<UrlCheckResult | null>(null);
   const [checking, setChecking] = useState(false);
 
   const autoBuild = useServerFn(autoBuildFromName);
-  async function handleAutoBuild() {
+  const fetchHistory = useServerFn(getExtractionHistory);
+
+  async function refreshHistory() {
+    try {
+      const rows = await fetchHistory({ data: { conferenceId: conference.id, limit: 8 } });
+      setHistory(rows);
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  async function handleAutoBuild(opts: { refresh?: boolean } = {}) {
     if (!nameQuery.trim()) {
       toast.error("Type a conference name first");
       return;
@@ -137,26 +157,50 @@ function Extraction() {
     setAutoBuilding(true);
     setAutoAttempts([]);
     setRows([]);
+    setLastRun(null);
     try {
-      const res = await autoBuild({ data: { query: nameQuery.trim() } });
+      const res = await autoBuild({
+        data: {
+          query: nameQuery.trim(),
+          conferenceId: conference.id,
+          refresh: opts.refresh ?? false,
+        },
+      });
       setAutoAttempts(res.attempts);
+      setLastRun({
+        fromCache: res.fromCache,
+        cachedAt: res.cachedAt,
+        distributed: res.distributed,
+      });
       if (res.sessions.length > 0 && res.sourceUrl) {
         setRows(res.sessions);
         setSourceUrl(res.sourceUrl);
         setUrl(res.sourceUrl);
         setExpanded({});
-        toast.success(
-          `Auto-built ${res.sessions.length} sessions from ${new URL(res.sourceUrl).hostname}`,
-        );
+        const host = new URL(res.sourceUrl).hostname;
+        const d = res.distributed;
+        const distTxt = `+${d.newSessions} sessions, +${d.postersCreated} posters, +${d.endpointsCreated} endpoints`;
+        if (res.fromCache) {
+          toast.success(`Loaded ${res.sessions.length} sessions from cache (${host}) · ${distTxt}`);
+        } else {
+          toast.success(`Auto-built ${res.sessions.length} sessions from ${host} · ${distTxt}`);
+        }
+        // Propagate to the rest of the app
+        qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
+        qc.invalidateQueries({ queryKey: ["posters", conference.id] });
+        qc.invalidateQueries({ queryKey: ["endpoints", conference.id] });
+        qc.invalidateQueries({ queryKey: ["conferences"] });
       } else {
         toast.warning(res.warning ?? "No sessions found");
       }
+      void refreshHistory();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Auto-build failed");
     } finally {
       setAutoBuilding(false);
     }
   }
+
 
   async function handleSuggest() {
     if (!nameQuery.trim()) return;
@@ -424,7 +468,7 @@ function Extraction() {
               </div>
               <Button
                 type="button"
-                onClick={handleAutoBuild}
+                onClick={() => handleAutoBuild()}
                 disabled={autoBuilding || !nameQuery.trim()}
               >
                 {autoBuilding ? (
@@ -433,6 +477,16 @@ function Extraction() {
                   <Wand2 className="h-4 w-4" />
                 )}
                 Auto-build sessions
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleAutoBuild({ refresh: true })}
+                disabled={autoBuilding || !nameQuery.trim()}
+                title="Ignore cache and re-scrape the conference site"
+              >
+                <RotateCw className={"h-4 w-4 " + (autoBuilding ? "animate-spin" : "")} />
+                Refresh
               </Button>
               <Button
                 type="button"
@@ -448,10 +502,93 @@ function Extraction() {
                 Suggest URLs
               </Button>
             </div>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Auto-build searches the web for the conference site, tries the top matches in order,
-              and returns extracted sessions ready for the Planner.
-            </p>
+            <div className="mt-1.5 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground">
+                Auto-build reuses the cached extraction when available. Refresh re-scrapes the site
+                for newly-released sessions and abstracts, then pushes them into the Planner,
+                Posters, and Endpoints modules.
+              </p>
+              <button
+                type="button"
+                className="shrink-0 text-[11px] font-medium text-primary hover:underline"
+                onClick={() => {
+                  setHistoryOpen((v) => !v);
+                  if (!historyOpen) void refreshHistory();
+                }}
+              >
+                {historyOpen ? "Hide history" : "View history"}
+              </button>
+            </div>
+            {lastRun && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border bg-primary/5 px-3 py-2 text-xs">
+                {lastRun.fromCache ? (
+                  <Badge variant="secondary" className="gap-1">
+                    <ShieldCheck className="h-3 w-3" /> Cached
+                    {lastRun.cachedAt && (
+                      <span className="text-muted-foreground">
+                        · {new Date(lastRun.cachedAt).toLocaleString()}
+                      </span>
+                    )}
+                  </Badge>
+                ) : (
+                  <Badge className="gap-1">
+                    <Sparkles className="h-3 w-3" /> Fresh scrape
+                  </Badge>
+                )}
+                <span className="text-muted-foreground">Distributed:</span>
+                <Badge variant="outline">+{lastRun.distributed.newSessions} sessions</Badge>
+                <Badge variant="outline">+{lastRun.distributed.postersCreated} posters</Badge>
+                <Badge variant="outline">+{lastRun.distributed.endpointsCreated} endpoints</Badge>
+              </div>
+            )}
+            {historyOpen && (
+              <div className="mt-2 space-y-1 rounded-lg border bg-muted/30 p-2">
+                <div className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Recent runs for {conference.acronym}
+                </div>
+                {history.length === 0 ? (
+                  <div className="p-2 text-xs text-muted-foreground">No runs yet.</div>
+                ) : (
+                  history.map((h) => (
+                    <div
+                      key={h.id}
+                      className="flex items-start gap-2 rounded-md p-1.5 text-xs"
+                    >
+                      {h.status === "ok" ? (
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+                      ) : h.status === "cached" ? (
+                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                      ) : h.status === "failed" ? (
+                        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                      ) : (
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">
+                          {h.query ?? "—"}{" "}
+                          <span className="text-muted-foreground">
+                            · {new Date(h.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        {h.sourceUrl && (
+                          <div className="truncate text-muted-foreground">{h.sourceUrl}</div>
+                        )}
+                        {h.reason && <div className="text-destructive/80">{h.reason}</div>}
+                      </div>
+                      <div className="shrink-0 text-right text-[10px] font-medium text-muted-foreground">
+                        <div>
+                          {h.sessionCount} sess · +{h.newSessions} new
+                        </div>
+                        <div>
+                          +{h.postersCreated}p · +{h.endpointsCreated}ep
+                          {h.fromCache && " · cache"}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
             {autoAttempts.length > 0 && (
               <div className="mt-2 space-y-1 rounded-lg border bg-muted/30 p-2">
                 <div className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

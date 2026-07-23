@@ -237,6 +237,106 @@ export type Database = {
           },
         ]
       }
+      extraction_cache: {
+        Row: {
+          conference_id: string
+          created_at: string
+          id: string
+          query: string | null
+          scraped_at: string
+          session_count: number
+          sessions: Json
+          source_url: string
+          updated_at: string
+        }
+        Insert: {
+          conference_id: string
+          created_at?: string
+          id?: string
+          query?: string | null
+          scraped_at?: string
+          session_count?: number
+          sessions?: Json
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          conference_id?: string
+          created_at?: string
+          id?: string
+          query?: string | null
+          scraped_at?: string
+          session_count?: number
+          sessions?: Json
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_cache_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "conferences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      extraction_runs: {
+        Row: {
+          attempts: Json
+          conference_id: string
+          created_at: string
+          endpoints_created: number
+          from_cache: boolean
+          id: string
+          new_sessions: number
+          posters_created: number
+          query: string | null
+          reason: string | null
+          session_count: number
+          source_url: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: Json
+          conference_id: string
+          created_at?: string
+          endpoints_created?: number
+          from_cache?: boolean
+          id?: string
+          new_sessions?: number
+          posters_created?: number
+          query?: string | null
+          reason?: string | null
+          session_count?: number
+          source_url?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: Json
+          conference_id?: string
+          created_at?: string
+          endpoints_created?: number
+          from_cache?: boolean
+          id?: string
+          new_sessions?: number
+          posters_created?: number
+          query?: string | null
+          reason?: string | null
+          session_count?: number
+          source_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extraction_runs_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "conferences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hypotheses: {
         Row: {
           conference_id: string | null
