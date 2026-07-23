@@ -121,10 +121,42 @@ function Extraction() {
   const [nameQuery, setNameQuery] = useState("");
   const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  const [autoBuilding, setAutoBuilding] = useState(false);
+  const [autoAttempts, setAutoAttempts] = useState<AutoBuildAttempt[]>([]);
 
   // URL check
   const [check, setCheck] = useState<UrlCheckResult | null>(null);
   const [checking, setChecking] = useState(false);
+
+  const autoBuild = useServerFn(autoBuildFromName);
+  async function handleAutoBuild() {
+    if (!nameQuery.trim()) {
+      toast.error("Type a conference name first");
+      return;
+    }
+    setAutoBuilding(true);
+    setAutoAttempts([]);
+    setRows([]);
+    try {
+      const res = await autoBuild({ data: { query: nameQuery.trim() } });
+      setAutoAttempts(res.attempts);
+      if (res.sessions.length > 0 && res.sourceUrl) {
+        setRows(res.sessions);
+        setSourceUrl(res.sourceUrl);
+        setUrl(res.sourceUrl);
+        setExpanded({});
+        toast.success(
+          `Auto-built ${res.sessions.length} sessions from ${new URL(res.sourceUrl).hostname}`,
+        );
+      } else {
+        toast.warning(res.warning ?? "No sessions found");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Auto-build failed");
+    } finally {
+      setAutoBuilding(false);
+    }
+  }
 
   async function handleSuggest() {
     if (!nameQuery.trim()) return;
