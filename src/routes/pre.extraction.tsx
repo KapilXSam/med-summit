@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { routeSeo } from "@/lib/route-seo";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
