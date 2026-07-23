@@ -444,7 +444,7 @@ function Planner() {
         <Card>
           <CardContent className="p-0">
             <div className="max-h-[62vh] overflow-auto">
-              <Table className="w-full min-w-[1800px] table-fixed">
+              <Table className="w-full min-w-[1920px] table-fixed">
                 <TableHeader className="sticky top-0 z-10 bg-card">
                   <TableRow>
                     <TableHead className="w-[56px]">#</TableHead>
