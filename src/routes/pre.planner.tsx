@@ -595,6 +595,28 @@ function Planner() {
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      <TableCell className="pt-2 text-center">
+                        {s.sourceUrl ? (
+                          <Button
+                            asChild
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title={`Open session on ${(() => { try { return new URL(s.sourceUrl).hostname; } catch { return "source"; } })()}`}
+                          >
+                            <a
+                              href={s.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Open session on conference site"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="pt-2 text-right">
                         <Button
                           size="icon"
