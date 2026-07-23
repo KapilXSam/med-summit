@@ -288,15 +288,29 @@ export const checkAgendaUrl = createServerFn({ method: "POST" })
 
 const AutoBuildInput = z.object({
   query: z.string().min(2).max(200),
+  conferenceId: z.string().min(1),
   limit: z.number().min(1).max(80).optional(),
+  refresh: z.boolean().optional(),
+  maxAgeHours: z.number().min(0).max(720).optional(),
+});
+
+const HistoryInput = z.object({
+  conferenceId: z.string().min(1),
+  limit: z.number().min(1).max(50).optional(),
 });
 
 export interface AutoBuildAttempt {
   url: string;
   title: string;
-  status: "ok" | "empty" | "failed";
+  status: "ok" | "empty" | "failed" | "cached";
   sessions: number;
   reason?: string;
+}
+
+export interface DistributeSummary {
+  newSessions: number;
+  postersCreated: number;
+  endpointsCreated: number;
 }
 
 export interface AutoBuildResult {
@@ -305,7 +319,34 @@ export interface AutoBuildResult {
   sessions: ExtractedSession[];
   attempts: AutoBuildAttempt[];
   warning?: string;
+  fromCache: boolean;
+  cachedAt?: string;
+  distributed: DistributeSummary;
 }
+
+export interface ExtractionRunRow {
+  id: string;
+  query: string | null;
+  sourceUrl: string | null;
+  status: string;
+  sessionCount: number;
+  newSessions: number;
+  postersCreated: number;
+  endpointsCreated: number;
+  fromCache: boolean;
+  reason: string | null;
+  attempts: AutoBuildAttempt[];
+  createdAt: string;
+}
+
+export interface ExtractionCacheRow {
+  id: string;
+  sourceUrl: string;
+  query: string | null;
+  sessionCount: number;
+  scrapedAt: string;
+}
+
 
 async function searchAgendaUrls(query: string): Promise<UrlSuggestion[]> {
   const fcKey = process.env.FIRECRAWL_API_KEY;
