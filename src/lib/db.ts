@@ -85,6 +85,7 @@ function mapSession(s: Record<string, unknown>): Session {
     assignedTo: (s.assigned_to as string) ?? undefined,
     conflict: (s.conflict as boolean) ?? false,
     kiqId: (s.kiq_id as string) ?? undefined,
+    sourceUrl: (s.source_url as string) ?? undefined,
   };
 }
 
