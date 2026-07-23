@@ -442,18 +442,284 @@ ${markdown}`;
   });
 }
 
+async function distributeSessions(
+  conferenceId: string,
+  sessions: ExtractedSession[],
+  sourceUrl: string,
+): Promise<DistributeSummary> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Existing sessions in this conference — used to dedupe.
+  const { data: existing } = await supabaseAdmin
+    .from("sessions")
+    .select("id, title, trial_id")
+    .eq("conference_id", conferenceId);
+  const seenTitles = new Set(
+    (existing ?? []).map((r) => (r.title ?? "").trim().toLowerCase()),
+  );
+  const seenTrials = new Set(
+    (existing ?? []).map((r) => (r.trial_id ?? "").trim().toLowerCase()).filter(Boolean),
+  );
+
+  const isPoster = (s: ExtractedSession) =>
+    /poster/i.test(s.asset) || /poster/i.test(s.room) || /poster/i.test(s.title);
+
+  const sessionRows = sessions
+    .filter((s) => s.title.trim() && !seenTitles.has(s.title.trim().toLowerCase()))
+    .map((s) => ({
+      conference_id: conferenceId,
+      title: s.title,
+      authors: s.authors || "",
+      affiliation: s.affiliation || "",
+      day: s.day || "",
+      time: s.time || "",
+      room: s.room || "",
+      trial_id: s.trialId || null,
+      therapy_area: s.therapyArea || "",
+      asset: s.asset || "",
+      confidence: s.confidence ?? 0,
+      source_url: sourceUrl,
+    }));
+
+  let newSessions = 0;
+  if (sessionRows.length > 0) {
+    const { data: inserted, error } = await supabaseAdmin
+      .from("sessions")
+      .insert(sessionRows)
+      .select("id");
+    if (error) throw new Error(`Session distribution failed: ${error.message}`);
+    newSessions = inserted?.length ?? 0;
+  }
+
+  // Posters: sessions tagged as posters
+  const posterCandidates = sessions.filter(isPoster);
+  const posterRows = posterCandidates
+    .filter((s) => s.title.trim())
+    .map((s) => ({
+      conference_id: conferenceId,
+      title: s.title,
+      presenter: s.authors || "",
+      captured_by: "",
+      captured_at: s.time || "",
+      therapy_area: s.therapyArea || "",
+      ocr_status: "queued",
+      summary: [],
+      significant: false,
+      contradictory: false,
+      source_quote: "",
+      page: 1,
+      confidence: s.confidence ?? 0,
+    }));
+  let postersCreated = 0;
+  if (posterRows.length > 0) {
+    // Dedupe against existing posters by title
+    const { data: existingPosters } = await supabaseAdmin
+      .from("posters")
+      .select("title")
+      .eq("conference_id", conferenceId);
+    const seenPoster = new Set(
+      (existingPosters ?? []).map((r) => (r.title ?? "").trim().toLowerCase()),
+    );
+    const fresh = posterRows.filter((r) => !seenPoster.has(r.title.trim().toLowerCase()));
+    if (fresh.length > 0) {
+      const { data: ins, error } = await supabaseAdmin.from("posters").insert(fresh).select("id");
+      if (!error) postersCreated = ins?.length ?? 0;
+    }
+  }
+
+  // Endpoints: one stub per unique new trial_id
+  const trialIds = Array.from(
+    new Set(
+      sessions
+        .map((s) => (s.trialId || "").trim())
+        .filter((t) => t && !seenTrials.has(t.toLowerCase())),
+    ),
+  );
+  let endpointsCreated = 0;
+  if (trialIds.length > 0) {
+    const rows = trialIds.map((tid) => {
+      const src = sessions.find((s) => (s.trialId || "").trim() === tid);
+      return {
+        conference_id: conferenceId,
+        trial_id: tid,
+        trial_name: src?.title ?? tid,
+        asset: src?.asset ?? "",
+        endpoint_type: "Primary",
+        endpoint: "",
+        value: "",
+        p_value: "",
+        hr: "",
+        ci: "",
+      };
+    });
+    const { data: existingEp } = await supabaseAdmin
+      .from("endpoints")
+      .select("trial_id")
+      .eq("conference_id", conferenceId);
+    const seenEp = new Set((existingEp ?? []).map((r) => (r.trial_id ?? "").toLowerCase()));
+    const fresh = rows.filter((r) => !seenEp.has(r.trial_id.toLowerCase()));
+    if (fresh.length > 0) {
+      const { data: ins, error } = await supabaseAdmin.from("endpoints").insert(fresh).select("id");
+      if (!error) endpointsCreated = ins?.length ?? 0;
+    }
+  }
+
+  // Bump session_count on the conference so cards reflect reality.
+  const { count } = await supabaseAdmin
+    .from("sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("conference_id", conferenceId);
+  if (typeof count === "number") {
+    await supabaseAdmin
+      .from("conferences")
+      .update({ session_count: count })
+      .eq("id", conferenceId);
+  }
+
+  return { newSessions, postersCreated, endpointsCreated };
+}
+
+async function loadCache(
+  conferenceId: string,
+  sourceUrl: string | null,
+  query: string | null,
+  maxAgeHours: number,
+) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const cutoff = new Date(Date.now() - maxAgeHours * 3600_000).toISOString();
+  let q = supabaseAdmin
+    .from("extraction_cache")
+    .select("*")
+    .eq("conference_id", conferenceId)
+    .gte("scraped_at", cutoff)
+    .order("scraped_at", { ascending: false })
+    .limit(1);
+  if (sourceUrl) q = q.eq("source_url", sourceUrl);
+  else if (query) q = q.eq("query", query);
+  const { data } = await q;
+  return data?.[0] ?? null;
+}
+
+async function saveCache(
+  conferenceId: string,
+  sourceUrl: string,
+  query: string,
+  sessions: ExtractedSession[],
+) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("extraction_cache")
+    .upsert(
+      {
+        conference_id: conferenceId,
+        source_url: sourceUrl,
+        query,
+        sessions: sessions as unknown as never,
+        session_count: sessions.length,
+        scraped_at: new Date().toISOString(),
+      },
+      { onConflict: "conference_id,source_url" },
+    );
+}
+
+async function logRun(row: {
+  conferenceId: string;
+  query: string;
+  sourceUrl: string | null;
+  status: string;
+  sessionCount: number;
+  newSessions: number;
+  postersCreated: number;
+  endpointsCreated: number;
+  fromCache: boolean;
+  reason?: string;
+  attempts: AutoBuildAttempt[];
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("extraction_runs").insert({
+    conference_id: row.conferenceId,
+    query: row.query,
+    source_url: row.sourceUrl,
+    status: row.status,
+    session_count: row.sessionCount,
+    new_sessions: row.newSessions,
+    posters_created: row.postersCreated,
+    endpoints_created: row.endpointsCreated,
+    from_cache: row.fromCache,
+    reason: row.reason ?? null,
+    attempts: row.attempts as unknown as never,
+  });
+}
+
 export const autoBuildFromName = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AutoBuildInput.parse(input))
   .handler(async ({ data }): Promise<AutoBuildResult> => {
     const limit = data.limit ?? 40;
+    const maxAge = data.maxAgeHours ?? 24;
+
+    // 1) Cache hit path
+    if (!data.refresh) {
+      const cached = await loadCache(data.conferenceId, null, data.query, maxAge);
+      if (cached && Array.isArray(cached.sessions) && cached.sessions.length > 0) {
+        const sessions = cached.sessions as unknown as ExtractedSession[];
+        const distributed = await distributeSessions(
+          data.conferenceId,
+          sessions,
+          cached.source_url,
+        );
+        await logRun({
+          conferenceId: data.conferenceId,
+          query: data.query,
+          sourceUrl: cached.source_url,
+          status: "cached",
+          sessionCount: sessions.length,
+          newSessions: distributed.newSessions,
+          postersCreated: distributed.postersCreated,
+          endpointsCreated: distributed.endpointsCreated,
+          fromCache: true,
+          attempts: [
+            { url: cached.source_url, title: "Cache", status: "cached", sessions: sessions.length },
+          ],
+        });
+        return {
+          query: data.query,
+          sourceUrl: cached.source_url,
+          sessions,
+          attempts: [
+            { url: cached.source_url, title: "Cache", status: "cached", sessions: sessions.length },
+          ],
+          fromCache: true,
+          cachedAt: cached.scraped_at,
+          distributed,
+        };
+      }
+    }
+
+    // 2) Fresh search + extract
     const candidates = await searchAgendaUrls(data.query);
     if (candidates.length === 0) {
+      const warning = "No candidate URLs found — try a more specific name.";
+      await logRun({
+        conferenceId: data.conferenceId,
+        query: data.query,
+        sourceUrl: null,
+        status: "empty",
+        sessionCount: 0,
+        newSessions: 0,
+        postersCreated: 0,
+        endpointsCreated: 0,
+        fromCache: false,
+        reason: warning,
+        attempts: [],
+      });
       return {
         query: data.query,
         sourceUrl: null,
         sessions: [],
         attempts: [],
-        warning: "No candidate URLs found — try a more specific name.",
+        warning,
+        fromCache: false,
+        distributed: { newSessions: 0, postersCreated: 0, endpointsCreated: 0 },
       };
     }
 
@@ -463,7 +729,28 @@ export const autoBuildFromName = createServerFn({ method: "POST" })
         const sessions = await ingestOnce(c.url, limit);
         if (sessions.length > 0) {
           attempts.push({ url: c.url, title: c.title, status: "ok", sessions: sessions.length });
-          return { query: data.query, sourceUrl: c.url, sessions, attempts };
+          await saveCache(data.conferenceId, c.url, data.query, sessions);
+          const distributed = await distributeSessions(data.conferenceId, sessions, c.url);
+          await logRun({
+            conferenceId: data.conferenceId,
+            query: data.query,
+            sourceUrl: c.url,
+            status: "ok",
+            sessionCount: sessions.length,
+            newSessions: distributed.newSessions,
+            postersCreated: distributed.postersCreated,
+            endpointsCreated: distributed.endpointsCreated,
+            fromCache: false,
+            attempts,
+          });
+          return {
+            query: data.query,
+            sourceUrl: c.url,
+            sessions,
+            attempts,
+            fromCache: false,
+            distributed,
+          };
         }
         attempts.push({ url: c.url, title: c.title, status: "empty", sessions: 0 });
       } catch (e) {
@@ -476,11 +763,75 @@ export const autoBuildFromName = createServerFn({ method: "POST" })
         });
       }
     }
+    const warning = "Tried the top candidates but none returned sessions. Paste a direct agenda URL below.";
+    await logRun({
+      conferenceId: data.conferenceId,
+      query: data.query,
+      sourceUrl: null,
+      status: "failed",
+      sessionCount: 0,
+      newSessions: 0,
+      postersCreated: 0,
+      endpointsCreated: 0,
+      fromCache: false,
+      reason: warning,
+      attempts,
+    });
     return {
       query: data.query,
       sourceUrl: null,
       sessions: [],
       attempts,
-      warning: "Tried the top candidates but none returned sessions. Paste a direct agenda URL below.",
+      warning,
+      fromCache: false,
+      distributed: { newSessions: 0, postersCreated: 0, endpointsCreated: 0 },
     };
   });
+
+export const getExtractionHistory = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => HistoryInput.parse(input))
+  .handler(async ({ data }): Promise<ExtractionRunRow[]> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("extraction_runs")
+      .select("*")
+      .eq("conference_id", data.conferenceId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 10);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({
+      id: r.id as string,
+      query: (r.query as string | null) ?? null,
+      sourceUrl: (r.source_url as string | null) ?? null,
+      status: r.status as string,
+      sessionCount: (r.session_count as number) ?? 0,
+      newSessions: (r.new_sessions as number) ?? 0,
+      postersCreated: (r.posters_created as number) ?? 0,
+      endpointsCreated: (r.endpoints_created as number) ?? 0,
+      fromCache: (r.from_cache as boolean) ?? false,
+      reason: (r.reason as string | null) ?? null,
+      attempts: (r.attempts as unknown as AutoBuildAttempt[]) ?? [],
+      createdAt: r.created_at as string,
+    }));
+  });
+
+export const getExtractionCaches = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => HistoryInput.parse(input))
+  .handler(async ({ data }): Promise<ExtractionCacheRow[]> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("extraction_cache")
+      .select("id, source_url, query, session_count, scraped_at")
+      .eq("conference_id", data.conferenceId)
+      .order("scraped_at", { ascending: false })
+      .limit(data.limit ?? 10);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({
+      id: r.id as string,
+      sourceUrl: r.source_url as string,
+      query: (r.query as string | null) ?? null,
+      sessionCount: (r.session_count as number) ?? 0,
+      scrapedAt: r.scraped_at as string,
+    }));
+  });
+
