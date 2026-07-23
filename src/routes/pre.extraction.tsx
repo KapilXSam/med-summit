@@ -419,9 +419,21 @@ function Extraction() {
                   className="pl-8"
                   value={nameQuery}
                   onChange={(e) => setNameQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSuggest()}
+                  onKeyDown={(e) => e.key === "Enter" && handleAutoBuild()}
                 />
               </div>
+              <Button
+                type="button"
+                onClick={handleAutoBuild}
+                disabled={autoBuilding || !nameQuery.trim()}
+              >
+                {autoBuilding ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                Auto-build sessions
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
@@ -436,6 +448,36 @@ function Extraction() {
                 Suggest URLs
               </Button>
             </div>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Auto-build searches the web for the conference site, tries the top matches in order,
+              and returns extracted sessions ready for the Planner.
+            </p>
+            {autoAttempts.length > 0 && (
+              <div className="mt-2 space-y-1 rounded-lg border bg-muted/30 p-2">
+                <div className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Auto-build attempts
+                </div>
+                {autoAttempts.map((a) => (
+                  <div key={a.url} className="flex items-start gap-2 rounded-md p-1.5 text-xs">
+                    {a.status === "ok" ? (
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+                    ) : a.status === "empty" ? (
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                    ) : (
+                      <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{a.title}</div>
+                      <div className="truncate text-muted-foreground">{a.url}</div>
+                      {a.reason && <div className="text-destructive/80">{a.reason}</div>}
+                    </div>
+                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
+                      {a.status === "ok" ? `${a.sessions} sessions` : a.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {suggestions.length > 0 && (
               <div className="mt-2 space-y-1.5 rounded-lg border bg-muted/30 p-2">
                 {suggestions.map((s) => (
