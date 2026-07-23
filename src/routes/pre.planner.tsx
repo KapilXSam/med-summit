@@ -459,6 +459,7 @@ function Planner() {
                     <TableHead className="w-[150px]">Related / Asset</TableHead>
                     <TableHead className="w-[140px]">Clinical Status</TableHead>
                     <TableHead className="w-[130px]">Priority</TableHead>
+                    <TableHead className="w-[80px] text-center">Link</TableHead>
                     <TableHead className="w-[70px] text-right">Add</TableHead>
                   </TableRow>
                 </TableHeader>
