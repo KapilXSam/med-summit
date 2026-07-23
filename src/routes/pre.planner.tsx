@@ -58,6 +58,7 @@ import {
   MapPin,
   X,
   ChevronsUpDown,
+  ExternalLink,
 } from "lucide-react";
 
 export const Route = createFileRoute("/pre/planner")({
