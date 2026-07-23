@@ -325,14 +325,9 @@ function ConferenceCalendar() {
         description="One structured view of every session, poster, and late-breaker — filter, plan and prepare in minutes."
         actions={
           hasData ? (
-            <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link to="/pre/planner">
-                  Open Planner <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="flex flex-wrap gap-2">
               <Button
-                variant="secondary"
+                variant="outline"
                 onClick={() => handleAutoBuild({ refresh: true })}
                 disabled={building}
               >
@@ -342,6 +337,18 @@ function ConferenceCalendar() {
                   <RotateCw className="h-4 w-4" />
                 )}
                 Refresh
+              </Button>
+              <Button
+                onClick={() => {
+                  qc.invalidateQueries({ queryKey: ["sessions", conference.id] });
+                  toast.success(
+                    `${stats.total} sessions available in Session Planner`,
+                  );
+                  navigate({ to: "/pre/planner" });
+                }}
+              >
+                <ArrowRight className="h-4 w-4" />
+                Send to Session Planner
               </Button>
             </div>
           ) : undefined
