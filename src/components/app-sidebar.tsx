@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   CalendarSearch,
+  CalendarRange,
   ScanText,
   ListChecks,
   BellRing,
@@ -41,8 +42,8 @@ const groups = [
   {
     label: "Module A · Pre-Conference",
     items: [
-      { title: "Conference Calendar", url: "/pre/extraction", icon: CalendarSearch },
-      { title: "Session Planner", url: "/pre/planner", icon: ScanText },
+      { title: "Conference Calendar", url: "/pre/extraction", icon: CalendarRange },
+      { title: "Session Planner", url: "/pre/planner", icon: CalendarSearch },
       { title: "LBA Monitor", url: "/pre/lba", icon: BellRing },
       { title: "KIT / KIQ Builder", url: "/pre/kitkiq", icon: ListChecks },
       { title: "Hypothesis Engine", url: "/pre/hypotheses", icon: Lightbulb },
