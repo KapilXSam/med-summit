@@ -34,8 +34,10 @@ import {
   retryFieldExtraction,
   suggestConferenceUrls,
   checkAgendaUrl,
+  autoBuildFromName,
   type UrlSuggestion,
   type UrlCheckResult,
+  type AutoBuildAttempt,
 } from "@/lib/extraction.functions";
 import { EDITABLE_FIELDS, type ExtractedSession } from "@/lib/extraction-types";
 import {
