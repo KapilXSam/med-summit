@@ -1,0 +1,1 @@
+UPDATE public.conferences SET location = 'Madrid, Spain', start_date = '2026-10-23', end_date = '2026-10-27' WHERE id = 'esmo-2026';
