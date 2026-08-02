@@ -54,6 +54,16 @@ export const Route = createFileRoute("/pre/lba")({
 
 const KINDS = ["asset", "competitor", "indication", "trial", "keyword"];
 
+/** Short, readable label for a source URL. */
+function hostLabel(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./, "") + (u.pathname !== "/" ? u.pathname : "");
+  } catch {
+    return url;
+  }
+}
+
 function LbaMonitor() {
   const { conference } = useApp();
   const qc = useQueryClient();
