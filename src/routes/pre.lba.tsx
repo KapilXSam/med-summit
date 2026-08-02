@@ -465,3 +465,105 @@ function AlertCard({
     </Card>
   );
 }
+
+const EMPTY_MANUAL: NewLbaAlert = {
+  title: "",
+  abstractNumber: "",
+  sponsor: "",
+  trialId: "",
+  indication: "",
+  phase: "",
+  summary: "",
+  sourceUrl: "",
+};
+
+/** Manual entry for late-breakers the scan hasn't picked up yet. */
+function ManualLbaDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  pending,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSubmit: (v: NewLbaAlert) => void;
+  pending: boolean;
+}) {
+  const [form, setForm] = useState<NewLbaAlert>(EMPTY_MANUAL);
+  const set = (k: keyof NewLbaAlert) => (v: string) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const fields: Array<[keyof NewLbaAlert, string, string]> = [
+    ["abstractNumber", "Abstract number", "LBA5001"],
+    ["sponsor", "Sponsor", "Company or institution"],
+    ["trialId", "Trial ID", "NCT01234567 / acronym"],
+    ["indication", "Indication", "NSCLC"],
+    ["phase", "Phase", "Phase 3"],
+    ["sourceUrl", "Source link", "https://…"],
+  ];
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setForm(EMPTY_MANUAL);
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add a late-breaking abstract</DialogTitle>
+          <DialogDescription>
+            For LBAs published on the congress site that the scan hasn&apos;t caught yet.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="lba-title">Title</Label>
+            <Input
+              id="lba-title"
+              value={form.title}
+              onChange={(e) => set("title")(e.target.value)}
+              placeholder="Late-breaker title"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fields.map(([key, label, placeholder]) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={`lba-${key}`}>{label}</Label>
+                <Input
+                  id={`lba-${key}`}
+                  value={(form[key] as string) ?? ""}
+                  onChange={(e) => set(key)(e.target.value)}
+                  placeholder={placeholder}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="lba-summary">Summary</Label>
+            <Textarea
+              id="lba-summary"
+              rows={3}
+              value={form.summary}
+              onChange={(e) => set("summary")(e.target.value)}
+              placeholder="One-line description of the readout"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!form.title.trim() || pending}
+            onClick={() => onSubmit({ ...form, title: form.title.trim() })}
+          >
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />} Add late-breaker
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
