@@ -17,7 +17,7 @@ import { TopBar } from "@/components/top-bar";
 import { AppProvider } from "@/context/app-context";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthGate } from "@/components/auth-gate";
+
 
 function NotFoundComponent() {
   return (
@@ -169,7 +169,6 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate>
       <AppProvider>
         <SidebarProvider>
           <TooltipProvider delayDuration={200}>
