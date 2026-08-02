@@ -194,6 +194,23 @@ function LbaMonitor() {
               {lastRun.error ? ` · ${lastRun.error}` : ""}
             </p>
           )}
+          {lastRun && lastRun.sourcesScanned.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {lastRun.sourcesScanned.map((u) => (
+                <a
+                  key={u}
+                  href={u}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={u}
+                  className="inline-flex max-w-full items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{hostLabel(u)}</span>
+                </a>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
