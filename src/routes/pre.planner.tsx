@@ -40,8 +40,18 @@ import {
   updateAgendaItem,
   reorderAgenda,
   updateSession,
+  insertSessions,
   type AgendaRow,
 } from "@/lib/db";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import type { Session } from "@/data/types";
 import {
   CalendarDays,
@@ -59,7 +69,9 @@ import {
   X,
   ChevronsUpDown,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/pre/planner")({
   head: () =>
