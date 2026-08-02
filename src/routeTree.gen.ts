@@ -15,6 +15,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrePlannerRouteImport } from './routes/pre.planner'
+import { Route as PrePeopleRouteImport } from './routes/pre.people'
 import { Route as PreLbaRouteImport } from './routes/pre.lba'
 import { Route as PreKitkiqRouteImport } from './routes/pre.kitkiq'
 import { Route as PreHypothesesRouteImport } from './routes/pre.hypotheses'
@@ -61,6 +62,11 @@ const IndexRoute = IndexRouteImport.update({
 const PrePlannerRoute = PrePlannerRouteImport.update({
   id: '/pre/planner',
   path: '/pre/planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrePeopleRoute = PrePeopleRouteImport.update({
+  id: '/pre/people',
+  path: '/pre/people',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreLbaRoute = PreLbaRouteImport.update({
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
+  '/pre/people': typeof PrePeopleRoute
   '/pre/planner': typeof PrePlannerRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
+  '/pre/people': typeof PrePeopleRoute
   '/pre/planner': typeof PrePlannerRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/pre/hypotheses': typeof PreHypothesesRoute
   '/pre/kitkiq': typeof PreKitkiqRoute
   '/pre/lba': typeof PreLbaRoute
+  '/pre/people': typeof PrePeopleRoute
   '/pre/planner': typeof PrePlannerRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/pre/hypotheses'
     | '/pre/kitkiq'
     | '/pre/lba'
+    | '/pre/people'
     | '/pre/planner'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/pre/hypotheses'
     | '/pre/kitkiq'
     | '/pre/lba'
+    | '/pre/people'
     | '/pre/planner'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/pre/hypotheses'
     | '/pre/kitkiq'
     | '/pre/lba'
+    | '/pre/people'
     | '/pre/planner'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -327,6 +339,7 @@ export interface RootRouteChildren {
   PreHypothesesRoute: typeof PreHypothesesRoute
   PreKitkiqRoute: typeof PreKitkiqRoute
   PreLbaRoute: typeof PreLbaRoute
+  PrePeopleRoute: typeof PrePeopleRoute
   PrePlannerRoute: typeof PrePlannerRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -374,6 +387,13 @@ declare module '@tanstack/react-router' {
       path: '/pre/planner'
       fullPath: '/pre/planner'
       preLoaderRoute: typeof PrePlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pre/people': {
+      id: '/pre/people'
+      path: '/pre/people'
+      fullPath: '/pre/people'
+      preLoaderRoute: typeof PrePeopleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pre/lba': {
@@ -520,6 +540,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreHypothesesRoute: PreHypothesesRoute,
   PreKitkiqRoute: PreKitkiqRoute,
   PreLbaRoute: PreLbaRoute,
+  PrePeopleRoute: PrePeopleRoute,
   PrePlannerRoute: PrePlannerRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
