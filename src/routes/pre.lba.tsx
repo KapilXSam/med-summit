@@ -342,15 +342,19 @@ function AlertCard({
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" /> Detected {l.detectedAt}
             </span>
-            {l.sourceUrl && (
+            {l.sourceUrl ? (
               <a
                 href={l.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 text-primary hover:underline"
+                title={l.sourceUrl}
+                className="flex max-w-full items-center gap-1 truncate text-primary hover:underline"
               >
-                <ExternalLink className="h-3 w-3" /> Source
+                <ExternalLink className="h-3 w-3 shrink-0" />
+                <span className="truncate">{hostLabel(l.sourceUrl)}</span>
               </a>
+            ) : (
+              <span className="italic">No source link</span>
             )}
           </div>
         </div>
