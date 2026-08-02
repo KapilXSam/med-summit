@@ -17,6 +17,7 @@ import {
   Combine,
   FileOutput,
   Activity,
+  Users,
 } from "lucide-react";
 
 import {
@@ -45,6 +46,7 @@ const groups = [
       { title: "Conference Calendar", url: "/pre/extraction", icon: CalendarRange },
       { title: "Session Planner", url: "/pre/planner", icon: CalendarSearch },
       { title: "LBA Monitor", url: "/pre/lba", icon: BellRing },
+      { title: "Primary CI · People", url: "/pre/people", icon: Users },
       { title: "KIT / KIQ Builder", url: "/pre/kitkiq", icon: ListChecks },
       { title: "Hypothesis Engine", url: "/pre/hypotheses", icon: Lightbulb },
     ],
