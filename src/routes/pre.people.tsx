@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeSeo } from "@/lib/route-seo";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -657,8 +657,8 @@ function PeopleTable({
           const more = p.appearances.length - 1;
           const isOpen = !!expanded[p.key];
           return (
-            <>
-              <TableRow key={p.key} className="align-top">
+            <Fragment key={p.key}>
+              <TableRow className="align-top">
                 <TableCell className="pt-4">
                   {more > 0 ? (
                     <button
@@ -826,7 +826,7 @@ function PeopleTable({
                     <TableCell colSpan={4} />
                   </TableRow>
                 ))}
-            </>
+            </Fragment>
           );
         })}
       </TableBody>
