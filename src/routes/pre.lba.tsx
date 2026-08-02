@@ -304,12 +304,35 @@ function LbaMonitor() {
 
         {!isLoading && filtered.length === 0 && (
           <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              No late-breaking abstracts here yet. Run a scan to pull the latest LBAs for{" "}
-              {conference.acronym}.
+            <CardContent className="space-y-3 p-8 text-center text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">
+                No late-breaking abstracts for {conference.acronym} yet
+              </p>
+              <p className="mx-auto max-w-md">
+                LBA titles are usually published only a few weeks before the congress, so
+                an empty list is expected this far out. Use{" "}
+                <span className="font-medium text-foreground">Check conference site</span>{" "}
+                to re-scan, or add one manually if you spotted it before we did.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => scanMutation.mutate()}
+                  disabled={scanMutation.isPending}
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${scanMutation.isPending ? "animate-spin" : ""}`}
+                  />
+                  Check conference site
+                </Button>
+                <Button variant="outline" onClick={() => setManualOpen(true)}>
+                  <Plus className="h-4 w-4" /> Add LBA manually
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
+
 
         {filtered.map((l) => (
           <AlertCard
