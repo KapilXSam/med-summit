@@ -186,7 +186,7 @@ function RootComponent() {
           </TooltipProvider>
         </SidebarProvider>
       </AppProvider>
-      </AuthGate>
+      
     </QueryClientProvider>
   );
 }
