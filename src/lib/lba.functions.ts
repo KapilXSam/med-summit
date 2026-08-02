@@ -31,8 +31,20 @@ export interface LbaScanResult {
 
 export const scanLbaFeeds = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ScanInput.parse(input))
-  .handler(async ({ data, context }): Promise<LbaScanResult> => {
-    const { supabase } = context;
+  .handler(async ({ data }): Promise<LbaScanResult> => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
+    const supabase = createClient(process.env['SUPABASE_URL']!, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (input, init) => {
+          const h = new Headers(init?.headers);
+          if (key.startsWith('sb_') && h.get('Authorization') === `Bearer ${key}`) h.delete('Authorization');
+          h.set('apikey', key);
+          return fetch(input, { ...init, headers: h });
+        },
+      },
+    });
     const startedAt = Date.now();
 
     const { data: runRow } = await supabase
