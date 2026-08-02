@@ -283,18 +283,8 @@ function PeopleFinder() {
     return [...m.entries()].sort((a, b) => b[1].length - a[1].length);
   }, [filtered]);
 
-  const kitCompanyGaps = useMemo(() => {
-    const covered = new Set(people.map((p) => p.company.toLowerCase()));
-    const targets = [
-      ...new Set(
-        sessions
-          .map((s) => s.affiliation)
-          .filter(Boolean)
-          .map((a) => a.trim()),
-      ),
-    ];
-    return targets.filter((t) => !covered.has(t.toLowerCase()));
-  }, [people, sessions]);
+
+
 
   const save = useMutation({
     mutationFn: (input: {
