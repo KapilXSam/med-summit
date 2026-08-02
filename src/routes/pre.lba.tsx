@@ -149,10 +149,13 @@ function LbaMonitor() {
         title="Late-Breaking Abstract Monitor"
         description={`Scans live sources for ${conference.acronym} late-breakers and scores them against your watchlist and KIT topics.`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="gap-1.5">
               <Radar className="h-3.5 w-3.5 text-success" /> {alerts.length} tracked
             </Badge>
+            <Button variant="outline" onClick={() => setManualOpen(true)}>
+              <Plus className="h-4 w-4" /> Add LBA manually
+            </Button>
             <Button
               onClick={() => scanMutation.mutate()}
               disabled={scanMutation.isPending}
@@ -160,13 +163,21 @@ function LbaMonitor() {
               {scanMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Radar className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
               )}
-              {scanMutation.isPending ? "Scanning…" : "Run scan"}
+              {scanMutation.isPending ? "Checking…" : "Check conference site"}
             </Button>
           </div>
         }
       />
+
+      <ManualLbaDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        onSubmit={(v) => manualMutation.mutate(v)}
+        pending={manualMutation.isPending}
+      />
+
 
       <Card>
         <CardHeader className="pb-3">
