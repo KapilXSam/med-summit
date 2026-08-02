@@ -442,6 +442,45 @@ export async function deleteLbaAlert(id: string) {
   if (error) throw error;
 }
 
+export interface NewLbaAlert {
+  title: string;
+  abstractNumber?: string;
+  sponsor?: string;
+  trialId?: string;
+  indication?: string;
+  phase?: string;
+  summary?: string;
+  sourceUrl?: string;
+  relevantToKit?: boolean;
+}
+
+/** Manually record an LBA that the automated scan missed. */
+export async function addLbaAlert(conferenceId: string, input: NewLbaAlert) {
+  const { error } = await supabase.from("lba_alerts").insert({
+    conference_id: conferenceId,
+    title: input.title,
+    abstract_number: input.abstractNumber ?? "",
+    sponsor: input.sponsor ?? "",
+    trial_id: input.trialId ?? "",
+    indication: input.indication ?? "",
+    phase: input.phase ?? "",
+    summary: input.summary ?? "",
+    source_url: input.sourceUrl || null,
+    relevant_to_kit: input.relevantToKit ?? true,
+    relevance_score: 50,
+    match_reason: "Added manually",
+    status: "new",
+    detected_at: new Date().toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  } as never);
+  if (error) throw error;
+}
+
+
 // ---------- LBA watchlist ----------
 export async function fetchLbaWatchlist(conferenceId: string): Promise<LbaWatchTerm[]> {
   const { data, error } = await supabase

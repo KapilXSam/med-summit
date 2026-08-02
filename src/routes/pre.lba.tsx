@@ -22,11 +22,23 @@ import {
 import { useApp } from "@/context/app-context";
 import { useLbaAlerts, useLbaWatchlist, useLbaScanRuns } from "@/lib/hooks";
 import {
+  addLbaAlert,
   addLbaWatchTerm,
   deleteLbaWatchTerm,
   toggleLbaWatchTerm,
   updateLbaStatus,
+  type NewLbaAlert,
 } from "@/lib/db";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { scanLbaFeeds } from "@/lib/lba.functions";
 import type { LbaAlert, LbaStatus } from "@/data/types";
 import {
@@ -37,9 +49,11 @@ import {
   Loader2,
   Plus,
   Radar,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/pre/lba")({
   head: () =>
@@ -77,6 +91,18 @@ function LbaMonitor() {
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState("keyword");
   const [priority, setPriority] = useState("2");
+  const [manualOpen, setManualOpen] = useState(false);
+
+  const manualMutation = useMutation({
+    mutationFn: (v: NewLbaAlert) => addLbaAlert(conference.id, v),
+    onSuccess: () => {
+      setManualOpen(false);
+      qc.invalidateQueries({ queryKey: ["lba", conference.id] });
+      toast.success("Late-breaker added");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["lba", conference.id] });
@@ -149,10 +175,13 @@ function LbaMonitor() {
         title="Late-Breaking Abstract Monitor"
         description={`Scans live sources for ${conference.acronym} late-breakers and scores them against your watchlist and KIT topics.`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="gap-1.5">
               <Radar className="h-3.5 w-3.5 text-success" /> {alerts.length} tracked
             </Badge>
+            <Button variant="outline" onClick={() => setManualOpen(true)}>
+              <Plus className="h-4 w-4" /> Add LBA manually
+            </Button>
             <Button
               onClick={() => scanMutation.mutate()}
               disabled={scanMutation.isPending}
@@ -160,13 +189,21 @@ function LbaMonitor() {
               {scanMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Radar className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
               )}
-              {scanMutation.isPending ? "Scanning…" : "Run scan"}
+              {scanMutation.isPending ? "Checking…" : "Check conference site"}
             </Button>
           </div>
         }
       />
+
+      <ManualLbaDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        onSubmit={(v) => manualMutation.mutate(v)}
+        pending={manualMutation.isPending}
+      />
+
 
       <Card>
         <CardHeader className="pb-3">
@@ -304,12 +341,35 @@ function LbaMonitor() {
 
         {!isLoading && filtered.length === 0 && (
           <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              No late-breaking abstracts here yet. Run a scan to pull the latest LBAs for{" "}
-              {conference.acronym}.
+            <CardContent className="space-y-3 p-8 text-center text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">
+                No late-breaking abstracts for {conference.acronym} yet
+              </p>
+              <p className="mx-auto max-w-md">
+                LBA titles are usually published only a few weeks before the congress, so
+                an empty list is expected this far out. Use{" "}
+                <span className="font-medium text-foreground">Check conference site</span>{" "}
+                to re-scan, or add one manually if you spotted it before we did.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => scanMutation.mutate()}
+                  disabled={scanMutation.isPending}
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${scanMutation.isPending ? "animate-spin" : ""}`}
+                  />
+                  Check conference site
+                </Button>
+                <Button variant="outline" onClick={() => setManualOpen(true)}>
+                  <Plus className="h-4 w-4" /> Add LBA manually
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
+
 
         {filtered.map((l) => (
           <AlertCard
@@ -405,3 +465,105 @@ function AlertCard({
     </Card>
   );
 }
+
+const EMPTY_MANUAL: NewLbaAlert = {
+  title: "",
+  abstractNumber: "",
+  sponsor: "",
+  trialId: "",
+  indication: "",
+  phase: "",
+  summary: "",
+  sourceUrl: "",
+};
+
+/** Manual entry for late-breakers the scan hasn't picked up yet. */
+function ManualLbaDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  pending,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSubmit: (v: NewLbaAlert) => void;
+  pending: boolean;
+}) {
+  const [form, setForm] = useState<NewLbaAlert>(EMPTY_MANUAL);
+  const set = (k: keyof NewLbaAlert) => (v: string) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const fields: Array<[keyof NewLbaAlert, string, string]> = [
+    ["abstractNumber", "Abstract number", "LBA5001"],
+    ["sponsor", "Sponsor", "Company or institution"],
+    ["trialId", "Trial ID", "NCT01234567 / acronym"],
+    ["indication", "Indication", "NSCLC"],
+    ["phase", "Phase", "Phase 3"],
+    ["sourceUrl", "Source link", "https://…"],
+  ];
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setForm(EMPTY_MANUAL);
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add a late-breaking abstract</DialogTitle>
+          <DialogDescription>
+            For LBAs published on the congress site that the scan hasn&apos;t caught yet.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="lba-title">Title</Label>
+            <Input
+              id="lba-title"
+              value={form.title}
+              onChange={(e) => set("title")(e.target.value)}
+              placeholder="Late-breaker title"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fields.map(([key, label, placeholder]) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={`lba-${key}`}>{label}</Label>
+                <Input
+                  id={`lba-${key}`}
+                  value={(form[key] as string) ?? ""}
+                  onChange={(e) => set(key)(e.target.value)}
+                  placeholder={placeholder}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="lba-summary">Summary</Label>
+            <Textarea
+              id="lba-summary"
+              rows={3}
+              value={form.summary}
+              onChange={(e) => set("summary")(e.target.value)}
+              placeholder="One-line description of the readout"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!form.title.trim() || pending}
+            onClick={() => onSubmit({ ...form, title: form.title.trim() })}
+          >
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />} Add late-breaker
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

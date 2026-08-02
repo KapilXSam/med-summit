@@ -40,8 +40,18 @@ import {
   updateAgendaItem,
   reorderAgenda,
   updateSession,
+  insertSessions,
   type AgendaRow,
 } from "@/lib/db";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import type { Session } from "@/data/types";
 import {
   CalendarDays,
@@ -59,7 +69,9 @@ import {
   X,
   ChevronsUpDown,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/pre/planner")({
   head: () =>
@@ -169,12 +181,25 @@ function Planner() {
   const tzOffset = TIMEZONES.find((t) => t.value === timezone)?.offsetH ?? 0;
   const [rowTz, setRowTz] = useState<Record<string, string>>({});
   const [priority, setPriority] = useState<Record<string, "High" | "Medium" | "Low">>({});
+  const [manualOpen, setManualOpen] = useState(false);
 
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["agenda", conferenceId] });
     qc.invalidateQueries({ queryKey: ["sessions", conferenceId] });
   };
+
+  const manualMut = useMutation({
+    mutationFn: (s: ManualSessionInput) =>
+      insertSessions([{ ...s, conferenceId, confidence: 100 }]),
+    onSuccess: () => {
+      setManualOpen(false);
+      invalidate();
+      toast.success("Session added");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const addMut = useMutation({
     mutationFn: (s: Session) =>
@@ -327,14 +352,36 @@ function Planner() {
         title="Session Planner"
         description="Browse the extracted session catalogue, then add sessions to build a day-by-day agenda."
         actions={
-          <Button
-            variant="secondary"
-            onClick={() => toast.success("Agenda exported as calendar (.ics)")}
-          >
-            <CalendarDays className="h-4 w-4" /> Export agenda
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                invalidate();
+                toast.success("Refreshed session list");
+              }}
+            >
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+            <Button variant="outline" onClick={() => setManualOpen(true)}>
+              <Plus className="h-4 w-4" /> Add session manually
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => toast.success("Agenda exported as calendar (.ics)")}
+            >
+              <CalendarDays className="h-4 w-4" /> Export agenda
+            </Button>
+          </div>
         }
       />
+
+      <ManualSessionDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        onSubmit={(v) => manualMut.mutate(v)}
+        pending={manualMut.isPending}
+      />
+
 
       {/* Extracted sessions table */}
       <section className="mb-8">
@@ -841,3 +888,113 @@ function Planner() {
     </div>
   );
 }
+
+export interface ManualSessionInput {
+  title: string;
+  day: string;
+  time: string;
+  room: string;
+  authors: string;
+  affiliation: string;
+  therapyArea: string;
+  asset: string;
+  phase: string;
+  trialId: string;
+  sourceUrl: string;
+}
+
+const EMPTY_SESSION: ManualSessionInput = {
+  title: "",
+  day: "",
+  time: "",
+  room: "",
+  authors: "",
+  affiliation: "",
+  therapyArea: "",
+  asset: "",
+  phase: "",
+  trialId: "",
+  sourceUrl: "",
+};
+
+/** Manual entry for sessions the extraction missed. */
+function ManualSessionDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  pending,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSubmit: (v: ManualSessionInput) => void;
+  pending: boolean;
+}) {
+  const [form, setForm] = useState<ManualSessionInput>(EMPTY_SESSION);
+  const fields: Array<[keyof ManualSessionInput, string, string]> = [
+    ["day", "Day", "Fri, Oct 23"],
+    ["time", "Time", "09:00–10:30"],
+    ["room", "Room", "Hall A"],
+    ["authors", "Presenter", "Lead author"],
+    ["affiliation", "Affiliation", "Institution"],
+    ["therapyArea", "Indication", "NSCLC"],
+    ["asset", "Asset", "Drug / asset"],
+    ["phase", "Clinical status", "Phase 3"],
+    ["trialId", "Trial ID", "NCT01234567"],
+    ["sourceUrl", "Session link", "https://…"],
+  ];
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setForm(EMPTY_SESSION);
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Add a session manually</DialogTitle>
+          <DialogDescription>
+            For sessions published on the congress site that the extraction missed.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="ms-title">Title</Label>
+            <Input
+              id="ms-title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Session or abstract title"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fields.map(([key, label, placeholder]) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={`ms-${key}`}>{label}</Label>
+                <Input
+                  id={`ms-${key}`}
+                  value={form[key]}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={placeholder}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!form.title.trim() || pending}
+            onClick={() => onSubmit({ ...form, title: form.title.trim() })}
+          >
+            Add session
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
