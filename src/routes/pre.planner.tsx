@@ -327,14 +327,36 @@ function Planner() {
         title="Session Planner"
         description="Browse the extracted session catalogue, then add sessions to build a day-by-day agenda."
         actions={
-          <Button
-            variant="secondary"
-            onClick={() => toast.success("Agenda exported as calendar (.ics)")}
-          >
-            <CalendarDays className="h-4 w-4" /> Export agenda
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                invalidate();
+                toast.success("Refreshed session list");
+              }}
+            >
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+            <Button variant="outline" onClick={() => setManualOpen(true)}>
+              <Plus className="h-4 w-4" /> Add session manually
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => toast.success("Agenda exported as calendar (.ics)")}
+            >
+              <CalendarDays className="h-4 w-4" /> Export agenda
+            </Button>
+          </div>
         }
       />
+
+      <ManualSessionDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        onSubmit={(v) => manualMut.mutate(v)}
+        pending={manualMut.isPending}
+      />
+
 
       {/* Extracted sessions table */}
       <section className="mb-8">
