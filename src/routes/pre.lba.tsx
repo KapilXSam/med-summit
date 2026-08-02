@@ -54,6 +54,16 @@ export const Route = createFileRoute("/pre/lba")({
 
 const KINDS = ["asset", "competitor", "indication", "trial", "keyword"];
 
+/** Short, readable label for a source URL. */
+function hostLabel(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./, "") + (u.pathname !== "/" ? u.pathname : "");
+  } catch {
+    return url;
+  }
+}
+
 function LbaMonitor() {
   const { conference } = useApp();
   const qc = useQueryClient();
@@ -183,6 +193,23 @@ function LbaMonitor() {
               {Math.round(lastRun.durationMs / 1000)}s
               {lastRun.error ? ` · ${lastRun.error}` : ""}
             </p>
+          )}
+          {lastRun && lastRun.sourcesScanned.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {lastRun.sourcesScanned.map((u) => (
+                <a
+                  key={u}
+                  href={u}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={u}
+                  className="inline-flex max-w-full items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{hostLabel(u)}</span>
+                </a>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -342,15 +369,19 @@ function AlertCard({
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" /> Detected {l.detectedAt}
             </span>
-            {l.sourceUrl && (
+            {l.sourceUrl ? (
               <a
                 href={l.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 text-primary hover:underline"
+                title={l.sourceUrl}
+                className="flex max-w-full items-center gap-1 truncate text-primary hover:underline"
               >
-                <ExternalLink className="h-3 w-3" /> Source
+                <ExternalLink className="h-3 w-3 shrink-0" />
+                <span className="truncate">{hostLabel(l.sourceUrl)}</span>
               </a>
+            ) : (
+              <span className="italic">No source link</span>
             )}
           </div>
         </div>
