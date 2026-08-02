@@ -169,12 +169,25 @@ function Planner() {
   const tzOffset = TIMEZONES.find((t) => t.value === timezone)?.offsetH ?? 0;
   const [rowTz, setRowTz] = useState<Record<string, string>>({});
   const [priority, setPriority] = useState<Record<string, "High" | "Medium" | "Low">>({});
+  const [manualOpen, setManualOpen] = useState(false);
 
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["agenda", conferenceId] });
     qc.invalidateQueries({ queryKey: ["sessions", conferenceId] });
   };
+
+  const manualMut = useMutation({
+    mutationFn: (s: ManualSessionInput) =>
+      insertSessions([{ ...s, conferenceId, confidence: 100 }]),
+    onSuccess: () => {
+      setManualOpen(false);
+      invalidate();
+      toast.success("Session added");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const addMut = useMutation({
     mutationFn: (s: Session) =>
