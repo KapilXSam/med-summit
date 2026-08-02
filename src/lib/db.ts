@@ -9,6 +9,8 @@ import type {
   Kit,
   Kiq,
   LbaAlert,
+  LbaWatchTerm,
+  LbaScanRun,
   Poster,
   Session,
 } from "@/data/types";
