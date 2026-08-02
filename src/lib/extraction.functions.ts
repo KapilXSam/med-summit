@@ -59,7 +59,8 @@ const FIELD_KEYS = [
   "asset",
 ];
 
-async function scrapeMarkdown(url: string): Promise<string> {
+async function scrapeMarkdown(rawUrl: string): Promise<string> {
+  const url = assertPublicHttpUrl(rawUrl);
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) throw new Error("Firecrawl is not configured");
   const { default: Firecrawl } = await import("@mendable/firecrawl-js");
@@ -90,6 +91,7 @@ function parseJson<T>(text: string): T | null {
 }
 
 export const ingestConferenceUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => IngestInput.parse(input))
   .handler(async ({ data }): Promise<IngestResult> => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -155,6 +157,7 @@ ${markdown}`;
   });
 
 export const retryFieldExtraction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RetryInput.parse(input))
   .handler(async ({ data }): Promise<{ value: string; confidence: number }> => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -186,6 +189,7 @@ ${markdown}`;
   });
 
 export const suggestConferenceUrls = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SuggestInput.parse(input))
   .handler(async ({ data }): Promise<UrlSuggestion[]> => {
     const fcKey = process.env.FIRECRAWL_API_KEY;
@@ -231,6 +235,7 @@ export const suggestConferenceUrls = createServerFn({ method: "POST" })
       const desc = it.description ?? "";
       const score =
         (agendaHint.test(title) ? 1 : 0) + (agendaHint.test(desc) ? 1 : 0);
+      if (!isPublicHttpUrl(it.url)) continue;
       suggestions.push({ url: it.url, title, description: desc });
       // prioritize agenda-y ones by pushing others down
       if (score === 0 && suggestions.length > 5) break;
@@ -245,10 +250,12 @@ export const suggestConferenceUrls = createServerFn({ method: "POST" })
   });
 
 export const checkAgendaUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CheckInput.parse(input))
   .handler(async ({ data }): Promise<UrlCheckResult> => {
     try {
-      const r = await fetch(data.url, {
+      const safeUrl = assertPublicHttpUrl(data.url);
+      const r = await fetch(safeUrl, {
         method: "GET",
         headers: { "User-Agent": "Mozilla/5.0 Pharmalix/1.0" },
         redirect: "follow",
@@ -660,6 +667,7 @@ async function logRun(row: {
 }
 
 export const autoBuildFromName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AutoBuildInput.parse(input))
   .handler(async ({ data }): Promise<AutoBuildResult> => {
     const limit = data.limit ?? 40;
@@ -704,7 +712,9 @@ export const autoBuildFromName = createServerFn({ method: "POST" })
     }
 
     // 2) Fresh search + extract
-    const candidates = await searchAgendaUrls(data.query);
+    const candidates = (await searchAgendaUrls(data.query)).filter((c) =>
+      isPublicHttpUrl(c.url),
+    );
     if (candidates.length === 0) {
       const warning = "No candidate URLs found — try a more specific name.";
       await logRun({
@@ -797,6 +807,7 @@ export const autoBuildFromName = createServerFn({ method: "POST" })
   });
 
 export const getExtractionHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => HistoryInput.parse(input))
   .handler(async ({ data }): Promise<ExtractionRunRow[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -824,6 +835,7 @@ export const getExtractionHistory = createServerFn({ method: "POST" })
   });
 
 export const getExtractionCaches = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => HistoryInput.parse(input))
   .handler(async ({ data }): Promise<ExtractionCacheRow[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
