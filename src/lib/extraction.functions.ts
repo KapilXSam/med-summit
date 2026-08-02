@@ -2,17 +2,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertPublicHttpUrl, isPublicHttpUrl } from "./safe-url";
 import type { ExtractedSession, IngestResult } from "./extraction-types";
 
 const CONF_THRESHOLD = 70;
 
+const publicUrl = z
+  .string()
+  .url()
+  .refine(isPublicHttpUrl, { message: "URL must be a public http(s) address" });
+
 const IngestInput = z.object({
-  url: z.string().url(),
+  url: publicUrl,
   limit: z.number().min(1).max(80).optional(),
 });
 
 const RetryInput = z.object({
-  url: z.string().url(),
+  url: publicUrl,
   sessionTitle: z.string().min(1),
   field: z.string().min(1),
 });
@@ -22,8 +29,9 @@ const SuggestInput = z.object({
 });
 
 const CheckInput = z.object({
-  url: z.string().url(),
+  url: publicUrl,
 });
+
 
 export interface UrlSuggestion {
   url: string;
