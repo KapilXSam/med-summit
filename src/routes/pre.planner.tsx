@@ -888,3 +888,113 @@ function Planner() {
     </div>
   );
 }
+
+export interface ManualSessionInput {
+  title: string;
+  day: string;
+  time: string;
+  room: string;
+  authors: string;
+  affiliation: string;
+  therapyArea: string;
+  asset: string;
+  phase: string;
+  trialId: string;
+  sourceUrl: string;
+}
+
+const EMPTY_SESSION: ManualSessionInput = {
+  title: "",
+  day: "",
+  time: "",
+  room: "",
+  authors: "",
+  affiliation: "",
+  therapyArea: "",
+  asset: "",
+  phase: "",
+  trialId: "",
+  sourceUrl: "",
+};
+
+/** Manual entry for sessions the extraction missed. */
+function ManualSessionDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  pending,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSubmit: (v: ManualSessionInput) => void;
+  pending: boolean;
+}) {
+  const [form, setForm] = useState<ManualSessionInput>(EMPTY_SESSION);
+  const fields: Array<[keyof ManualSessionInput, string, string]> = [
+    ["day", "Day", "Fri, Oct 23"],
+    ["time", "Time", "09:00–10:30"],
+    ["room", "Room", "Hall A"],
+    ["authors", "Presenter", "Lead author"],
+    ["affiliation", "Affiliation", "Institution"],
+    ["therapyArea", "Indication", "NSCLC"],
+    ["asset", "Asset", "Drug / asset"],
+    ["phase", "Clinical status", "Phase 3"],
+    ["trialId", "Trial ID", "NCT01234567"],
+    ["sourceUrl", "Session link", "https://…"],
+  ];
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setForm(EMPTY_SESSION);
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Add a session manually</DialogTitle>
+          <DialogDescription>
+            For sessions published on the congress site that the extraction missed.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="ms-title">Title</Label>
+            <Input
+              id="ms-title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Session or abstract title"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fields.map(([key, label, placeholder]) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={`ms-${key}`}>{label}</Label>
+                <Input
+                  id={`ms-${key}`}
+                  value={form[key]}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={placeholder}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!form.title.trim() || pending}
+            onClick={() => onSubmit({ ...form, title: form.title.trim() })}
+          >
+            Add session
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
