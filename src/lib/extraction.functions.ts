@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertPublicHttpUrl, isPublicHttpUrl } from "./safe-url";
 import type { ExtractedSession, IngestResult } from "./extraction-types";
 
@@ -91,7 +90,6 @@ function parseJson<T>(text: string): T | null {
 }
 
 export const ingestConferenceUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => IngestInput.parse(input))
   .handler(async ({ data }): Promise<IngestResult> => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -157,7 +155,6 @@ ${markdown}`;
   });
 
 export const retryFieldExtraction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RetryInput.parse(input))
   .handler(async ({ data }): Promise<{ value: string; confidence: number }> => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -189,7 +186,6 @@ ${markdown}`;
   });
 
 export const suggestConferenceUrls = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SuggestInput.parse(input))
   .handler(async ({ data }): Promise<UrlSuggestion[]> => {
     const fcKey = process.env.FIRECRAWL_API_KEY;
@@ -250,7 +246,6 @@ export const suggestConferenceUrls = createServerFn({ method: "POST" })
   });
 
 export const checkAgendaUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CheckInput.parse(input))
   .handler(async ({ data }): Promise<UrlCheckResult> => {
     try {
@@ -667,7 +662,6 @@ async function logRun(row: {
 }
 
 export const autoBuildFromName = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AutoBuildInput.parse(input))
   .handler(async ({ data }): Promise<AutoBuildResult> => {
     const limit = data.limit ?? 40;
@@ -807,7 +801,6 @@ export const autoBuildFromName = createServerFn({ method: "POST" })
   });
 
 export const getExtractionHistory = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => HistoryInput.parse(input))
   .handler(async ({ data }): Promise<ExtractionRunRow[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -835,7 +828,6 @@ export const getExtractionHistory = createServerFn({ method: "POST" })
   });
 
 export const getExtractionCaches = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => HistoryInput.parse(input))
   .handler(async ({ data }): Promise<ExtractionCacheRow[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isPublicHttpUrl } from "./safe-url";
 import {
   discoverLbaSources,
@@ -31,7 +30,6 @@ export interface LbaScanResult {
 }
 
 export const scanLbaFeeds = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ScanInput.parse(input))
   .handler(async ({ data, context }): Promise<LbaScanResult> => {
     const { supabase } = context;
