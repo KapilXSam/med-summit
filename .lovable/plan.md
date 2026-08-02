@@ -1,63 +1,45 @@
-# VERA 2.0 — Clickable Prototype Plan
+# Finalize: remove mock data + add Primary CI people finder
 
-A frontend-only, fully navigable prototype covering all three modules (Pre / During / Post conference) using realistic mock data. No backend, no real AI, no auth enforcement — role switching is simulated. Focus is on validating the end-to-end workflow and UI.
+Yes — I understand. You want a people-centric view: instead of browsing sessions, you browse the *humans* attending (authors/presenters from different companies), so a field team can find the right person, at the right hall, at the right time, and ask their KIQs.
 
-## Design language
-- Clean enterprise pharma/SaaS look: neutral surfaces, one confident primary accent (deep teal/blue), generous whitespace, data-dense but legible.
-- Persistent left sidebar navigation + top bar with conference selector and a simulated role switcher.
-- Reusable UI primitives (shadcn): cards, tables, tabs, badges, progress bars, dialogs, sheets, toasts.
-- Confidence scores and source-attribution chips shown throughout to reflect the regulated-industry requirement.
+## 1. Remove mock data
 
-## App shell & navigation
-- `__root.tsx`: app title/meta, sidebar + topbar layout, `<Outlet />`.
-- Topbar: conference dropdown (mock conferences e.g. ASCO 2025, ESMO 2025), role switcher (Admin, PM, Analyst, Delegate, Medical Writer, Client Viewer) that visually toggles permissions (e.g. Client Viewer hides low-confidence items).
-- Sidebar sections: Dashboard, Pre-Conference, During Conference, Post-Conference, plus KIT/KIQ and Settings.
+`src/data/mock.ts` is the only remaining mock file and nothing imports it (verified). It gets deleted. Everything already reads live data from the backend via `src/lib/db.ts`.
 
-## Routes
-```text
-/                      Landing / conference portfolio overview
-/dashboard             Cross-module status for active conference
-/pre                   Module A hub (tabs below)
-/pre/extraction        AI Extraction review (session table, confidence flags)
-/pre/planner           Session Planner (filter, assign, conflict detection)
-/pre/lba               LBA Monitor (alerts feed)
-/pre/kitkiq            KIT/KIQ Builder (nested tree + AI mapping)
-/pre/hypotheses        AI Hypothesis Engine
-/live                  Module B hub (mobile-first)
-/live/dashboard        Live Dashboard (agenda, check-in, KIQ tracker, feed)
-/live/capture          Evidence Capture (mock photo upload -> OCR/summary)
-/live/insights         Live AI Insights feed
-/live/collab           Live Collaboration threads
-/post                  Module C hub
-/post/summaries        Bulk Summarization
-/post/endpoints        Trial Endpoint Extractor (comparison tables)
-/post/synthesis        Insight Synthesis
-/post/deliverables     Deliverable Generator (3 tiers, mock export)
-```
+## 2. New section: Primary CI (People Finder)
 
-## Mock data (in `src/data/`)
-Typed fixtures for: Conference, Session, Abstract/Poster, Trial, Endpoint, KIT, KIQ, Hypothesis, Insight, Delegate, Comment, LBA alert. Enough volume (e.g. ~40 sessions, ~12 posters, several KIQs/insights) to make tables, filters, and trackers feel real. Numbers marked as "direct extraction" per the no-inferred-values rule.
+New sidebar entry under Module A, route `/pre/people`.
 
-## Module highlights (all simulated)
-- **Pre — Extraction**: sortable/filterable session table, therapy-area/asset tags, confidence badges, "flagged for review" state for <70%.
-- **Pre — Planner**: filters, multi-select assign-to-delegate, conflict highlighting, mock calendar export button.
-- **Pre — LBA Monitor**: chronological alert feed with "relevant to your KIT" badges.
-- **Pre — KIT/KIQ**: expandable nested tree, per-KIQ mapped session counts, editable labels.
-- **Pre — Hypotheses**: hypothesis cards ranked by impact/likelihood with mock PubMed/ClinicalTrials.gov citation links and gap flags.
-- **Live — Dashboard**: hourly-agenda list, KIQ completion progress bars, delegate check-in chips, live insight feed.
-- **Live — Capture**: file-input mock upload that shows a simulated OCR + 3-bullet summary after a short delay, with source quote/page/confidence.
-- **Live — Insights/Collab**: insight cards with significance/contradiction flags; threaded comments with @mentions (local state).
-- **Post — Summaries**: batch summarize control with progress simulation.
-- **Post — Endpoints**: cross-trial comparison table (p-values, HR, CI) with extraction markers.
-- **Post — Synthesis**: insights grouped by KIT/KIQ, ranked, dedup indicator.
-- **Post — Deliverables**: 3 exec-summary tiers, report preview, mock Word/PPT/PDF export buttons with attribution footnotes.
+Data is derived from the same planner sessions already in the database — each session has authors, affiliation, asset/trial, day, time, and room. The page splits the author string into individual people and builds one row per person-session appearance.
 
-## Explicitly not in this prototype
-Real extraction/scraping, real OCR/AI, live sync, integrations, database, and enforced auth — all simulated with mock data and timed UI feedback. These are called out as stubs so expectations are clear.
+Table columns:
+
+| Person | Company / Affiliation | Session | Asset / Trial | Day + Time | Hall / Location | Indication | Link |
+
+Behaviour:
+- **Grouped by person**: one expandable row per person; if someone appears in several sessions, all their appearances (time + hall) are listed under them, so you can see every window to catch them.
+- **Filters**: company, indication, asset/trial, day, hall, plus free-text search on name.
+- **Row actions**: assign a KIQ to ask, mark priority (High / Medium / Low), mark status (To approach / Approached / Done), and add a note.
+- **Export CSV** of the filtered list for field teams.
+- **Add person manually** dialog, for contacts who aren't listed as authors (booth staff, KOLs, medical affairs leads).
+- Empty state pointing to Session Planner when no sessions have been imported yet.
+
+To store the CI-specific bits (priority, status, assigned KIQ, notes, manually added people) a small `ci_contacts` table is added to the backend, keyed by person name + conference, with the same open access policy the other tables use. Derived rows stay live from sessions; only your annotations are saved.
+
+## Suggestions to make this stronger
+
+1. **"Right now" mode** — a live view during the conference that shows only people presenting in the next 2 hours, sorted by hall, so delegates get a walking route.
+2. **Company view** — flip the table to group by company to see a competitor's full presence at the congress in one shot.
+3. **Coverage gaps** — highlight target companies in your KIT that have *no* one identified yet.
+4. **Delegate assignment** — assign each priority person to a delegate, so two people don't approach the same author.
+5. **Debrief capture** — a quick "what they said" note per person that feeds into Insight Synthesis post-conference.
+
+I'd build items 1–3 now (cheap, high value) and leave 4–5 unless you want them in this pass.
 
 ## Technical notes
-- TanStack Start file-based routes; each route sets its own `head()` metadata.
-- Global state (active conference, current role) via a small React context.
-- No new heavy dependencies beyond existing shadcn/Tailwind stack; icons via lucide-react.
 
-I'll build the shell and mock data first, then fill in each module's screens.
+- Delete `src/data/mock.ts`.
+- New route `src/routes/pre.people.tsx` with its own `head()` metadata.
+- Person parsing helper (splits `"Chen L, et al."`-style author strings, normalises names, de-dupes case/punctuation variants) in `src/lib/people.ts`.
+- Migration for `ci_contacts` (conference_id, person_name, company, kiq_id, priority, status, note, manual flag) with grants + RLS matching existing tables.
+- Fetchers/mutations added to `src/lib/db.ts`, hook in `src/lib/hooks.ts`, sidebar entry in `src/components/app-sidebar.tsx`.
