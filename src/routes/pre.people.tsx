@@ -489,7 +489,7 @@ function PeopleFinder() {
         </CardContent>
       </Card>
 
-      {kitCompanyGaps.length > 0 && false && <div />}
+
 
       {isLoading ? (
         <Card>
