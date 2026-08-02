@@ -87,7 +87,7 @@ export const scanLbaFeeds = createServerFn({ method: "POST" })
       ]);
 
       const watchlist = (watchRows ?? []) as WatchTerm[];
-      const kitTopics = (kitRows ?? []).map((k) => k.topic as string);
+      const kitTopics = (kitRows ?? []).map((k: { topic: string }) => k.topic);
 
       const collected: ScoredLba[] = [];
       const scanned: string[] = [];
