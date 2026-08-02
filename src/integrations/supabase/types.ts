@@ -62,6 +62,97 @@ export type Database = {
           },
         ]
       }
+      ci_contacts: {
+        Row: {
+          asset: string
+          company: string
+          conference_id: string | null
+          created_at: string
+          day: string
+          id: string
+          indication: string
+          kiq_id: string | null
+          manual: boolean
+          note: string
+          person_key: string
+          person_name: string
+          priority: string
+          room: string
+          session_id: string | null
+          session_title: string
+          status: string
+          time: string
+          trial_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset?: string
+          company?: string
+          conference_id?: string | null
+          created_at?: string
+          day?: string
+          id?: string
+          indication?: string
+          kiq_id?: string | null
+          manual?: boolean
+          note?: string
+          person_key: string
+          person_name: string
+          priority?: string
+          room?: string
+          session_id?: string | null
+          session_title?: string
+          status?: string
+          time?: string
+          trial_id?: string
+          updated_at?: string
+        }
+        Update: {
+          asset?: string
+          company?: string
+          conference_id?: string | null
+          created_at?: string
+          day?: string
+          id?: string
+          indication?: string
+          kiq_id?: string | null
+          manual?: boolean
+          note?: string
+          person_key?: string
+          person_name?: string
+          priority?: string
+          room?: string
+          session_id?: string | null
+          session_title?: string
+          status?: string
+          time?: string
+          trial_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ci_contacts_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "conferences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ci_contacts_kiq_id_fkey"
+            columns: ["kiq_id"]
+            isOneToOne: false
+            referencedRelation: "kiqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ci_contacts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author: string
