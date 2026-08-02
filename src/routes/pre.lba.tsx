@@ -22,11 +22,23 @@ import {
 import { useApp } from "@/context/app-context";
 import { useLbaAlerts, useLbaWatchlist, useLbaScanRuns } from "@/lib/hooks";
 import {
+  addLbaAlert,
   addLbaWatchTerm,
   deleteLbaWatchTerm,
   toggleLbaWatchTerm,
   updateLbaStatus,
+  type NewLbaAlert,
 } from "@/lib/db";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { scanLbaFeeds } from "@/lib/lba.functions";
 import type { LbaAlert, LbaStatus } from "@/data/types";
 import {
@@ -37,9 +49,11 @@ import {
   Loader2,
   Plus,
   Radar,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/pre/lba")({
   head: () =>
