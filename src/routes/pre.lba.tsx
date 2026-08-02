@@ -77,6 +77,18 @@ function LbaMonitor() {
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState("keyword");
   const [priority, setPriority] = useState("2");
+  const [manualOpen, setManualOpen] = useState(false);
+
+  const manualMutation = useMutation({
+    mutationFn: (v: NewLbaAlert) => addLbaAlert(conference.id, v),
+    onSuccess: () => {
+      setManualOpen(false);
+      qc.invalidateQueries({ queryKey: ["lba", conference.id] });
+      toast.success("Late-breaker added");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["lba", conference.id] });
