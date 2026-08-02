@@ -555,38 +555,165 @@ export type Database = {
       }
       lba_alerts: {
         Row: {
+          abstract_number: string
           conference_id: string | null
           created_at: string
           detected_at: string
+          first_seen_at: string
           id: string
+          indication: string
           kit_topic: string | null
+          last_seen_at: string
+          match_reason: string
+          phase: string
+          relevance_score: number
           relevant_to_kit: boolean
+          source_url: string | null
+          sponsor: string
+          status: string
+          summary: string
           title: string
           trial_id: string
+          updated_at: string
+          watch_term: string
         }
         Insert: {
+          abstract_number?: string
           conference_id?: string | null
           created_at?: string
           detected_at?: string
+          first_seen_at?: string
           id?: string
+          indication?: string
           kit_topic?: string | null
+          last_seen_at?: string
+          match_reason?: string
+          phase?: string
+          relevance_score?: number
           relevant_to_kit?: boolean
+          source_url?: string | null
+          sponsor?: string
+          status?: string
+          summary?: string
           title: string
           trial_id?: string
+          updated_at?: string
+          watch_term?: string
         }
         Update: {
+          abstract_number?: string
           conference_id?: string | null
           created_at?: string
           detected_at?: string
+          first_seen_at?: string
           id?: string
+          indication?: string
           kit_topic?: string | null
+          last_seen_at?: string
+          match_reason?: string
+          phase?: string
+          relevance_score?: number
           relevant_to_kit?: boolean
+          source_url?: string | null
+          sponsor?: string
+          status?: string
+          summary?: string
           title?: string
           trial_id?: string
+          updated_at?: string
+          watch_term?: string
         }
         Relationships: [
           {
             foreignKeyName: "lba_alerts_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "conferences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lba_scan_runs: {
+        Row: {
+          alerts_found: number
+          conference_id: string | null
+          created_at: string
+          duration_ms: number
+          error: string | null
+          id: string
+          new_alerts: number
+          sources_scanned: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          alerts_found?: number
+          conference_id?: string | null
+          created_at?: string
+          duration_ms?: number
+          error?: string | null
+          id?: string
+          new_alerts?: number
+          sources_scanned?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          alerts_found?: number
+          conference_id?: string | null
+          created_at?: string
+          duration_ms?: number
+          error?: string | null
+          id?: string
+          new_alerts?: number
+          sources_scanned?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lba_scan_runs_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "conferences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lba_watchlist: {
+        Row: {
+          active: boolean
+          conference_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          priority: number
+          term: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          conference_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          priority?: number
+          term: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          conference_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          priority?: number
+          term?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lba_watchlist_conference_id_fkey"
             columns: ["conference_id"]
             isOneToOne: false
             referencedRelation: "conferences"

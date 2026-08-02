@@ -194,7 +194,7 @@ export const insights: Insight[] = [
   { id: "i5", text: "VRA-101 combination achieved median OS of 24.1 months versus comparator.", kitId: "kit1", kiqId: "kiq1", posterId: "p1", significant: true, contradictory: false, novelty: 3, impact: 9, confidence: 9, sourceQuote: "Median OS 24.1 months.", page: 1, duplicateOf: "i1" },
 ];
 
-export const lbaAlerts: LbaAlert[] = [
+export const lbaAlerts: Array<Pick<LbaAlert, "id" | "title" | "detectedAt" | "relevantToKit" | "trialId"> & Partial<LbaAlert>> = [
   { id: "l1", title: "LBA5001: OS results from AURORA-3 first-line combination trial", detectedAt: "12 min ago", relevantToKit: true, kitTopic: "VRA-101 competitive positioning", trialId: "NCT04500123" },
   { id: "l2", title: "LBA2004: Novel bispecific antibody in relapsed lymphoma", detectedAt: "48 min ago", relevantToKit: false, trialId: "NCT04588001" },
   { id: "l3", title: "LBA1010: ADC vs chemotherapy in HER2-low breast cancer", detectedAt: "2 hrs ago", relevantToKit: true, kitTopic: "ADC landscape in HER2-low", trialId: "NCT04511987" },

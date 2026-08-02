@@ -10,6 +10,8 @@ import {
   fetchInsights,
   fetchLbaAlerts,
   fetchComments,
+  fetchLbaWatchlist,
+  fetchLbaScanRuns,
 } from "@/lib/db";
 
 /** Convenience hooks scoped to the active conference. */
@@ -78,5 +80,21 @@ export function useComments() {
   return useQuery({
     queryKey: ["comments", conference.id],
     queryFn: () => fetchComments(conference.id),
+  });
+}
+
+export function useLbaWatchlist() {
+  const { conference } = useApp();
+  return useQuery({
+    queryKey: ["lba-watchlist", conference.id],
+    queryFn: () => fetchLbaWatchlist(conference.id),
+  });
+}
+
+export function useLbaScanRuns() {
+  const { conference } = useApp();
+  return useQuery({
+    queryKey: ["lba-runs", conference.id],
+    queryFn: () => fetchLbaScanRuns(conference.id),
   });
 }

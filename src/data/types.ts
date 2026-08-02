@@ -117,6 +117,8 @@ export interface Insight {
   duplicateOf?: string;
 }
 
+export type LbaStatus = "new" | "reviewed" | "dismissed";
+
 export interface LbaAlert {
   id: string;
   title: string;
@@ -124,7 +126,38 @@ export interface LbaAlert {
   relevantToKit: boolean;
   kitTopic?: string;
   trialId: string;
+  abstractNumber: string;
+  summary: string;
+  sourceUrl?: string;
+  sponsor: string;
+  indication: string;
+  phase: string;
+  relevanceScore: number;
+  matchReason: string;
+  status: LbaStatus;
+  watchTerm: string;
+  lastSeenAt: string;
 }
+
+export interface LbaWatchTerm {
+  id: string;
+  term: string;
+  kind: string;
+  priority: number;
+  active: boolean;
+}
+
+export interface LbaScanRun {
+  id: string;
+  status: string;
+  sourcesScanned: string[];
+  alertsFound: number;
+  newAlerts: number;
+  error?: string;
+  durationMs: number;
+  createdAt: string;
+}
+
 
 export interface Comment {
   id: string;

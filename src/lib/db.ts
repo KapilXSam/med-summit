@@ -9,6 +9,8 @@ import type {
   Kit,
   Kiq,
   LbaAlert,
+  LbaWatchTerm,
+  LbaScanRun,
   Poster,
   Session,
 } from "@/data/types";
@@ -396,22 +398,112 @@ export async function fetchInsights(conferenceId: string): Promise<Insight[]> {
 }
 
 // ---------- LBA alerts ----------
+function mapLba(row: Record<string, unknown>): LbaAlert {
+  const s = (k: string) => (typeof row[k] === "string" ? (row[k] as string) : "");
+  return {
+    id: row.id as string,
+    title: s("title"),
+    detectedAt: s("detected_at"),
+    relevantToKit: Boolean(row.relevant_to_kit),
+    kitTopic: s("kit_topic") || undefined,
+    trialId: s("trial_id"),
+    abstractNumber: s("abstract_number"),
+    summary: s("summary"),
+    sourceUrl: s("source_url") || undefined,
+    sponsor: s("sponsor"),
+    indication: s("indication"),
+    phase: s("phase"),
+    relevanceScore: Number(row.relevance_score ?? 0),
+    matchReason: s("match_reason"),
+    status: (s("status") || "new") as LbaAlert["status"],
+    watchTerm: s("watch_term"),
+    lastSeenAt: s("last_seen_at") || s("created_at"),
+  };
+}
+
 export async function fetchLbaAlerts(conferenceId: string): Promise<LbaAlert[]> {
   const { data, error } = await supabase
     .from("lba_alerts")
     .select("*")
     .eq("conference_id", conferenceId)
+    .order("relevance_score", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((l) => mapLba(l as Record<string, unknown>));
+}
+
+export async function updateLbaStatus(id: string, status: LbaAlert["status"]) {
+  const { error } = await supabase.from("lba_alerts").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteLbaAlert(id: string) {
+  const { error } = await supabase.from("lba_alerts").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- LBA watchlist ----------
+export async function fetchLbaWatchlist(conferenceId: string): Promise<LbaWatchTerm[]> {
+  const { data, error } = await supabase
+    .from("lba_watchlist")
+    .select("*")
+    .eq("conference_id", conferenceId)
+    .order("priority", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((l) => ({
-    id: l.id,
-    title: l.title,
-    detectedAt: l.detected_at,
-    relevantToKit: l.relevant_to_kit,
-    kitTopic: (l.kit_topic as string) ?? undefined,
-    trialId: l.trial_id,
+  return (data ?? []).map((w) => ({
+    id: w.id as string,
+    term: w.term as string,
+    kind: (w.kind as string) ?? "keyword",
+    priority: Number(w.priority ?? 2),
+    active: Boolean(w.active),
   }));
 }
+
+export async function addLbaWatchTerm(
+  conferenceId: string,
+  term: { term: string; kind: string; priority: number },
+) {
+  const { error } = await supabase.from("lba_watchlist").insert({
+    conference_id: conferenceId,
+    term: term.term,
+    kind: term.kind,
+    priority: term.priority,
+  });
+  if (error) throw error;
+}
+
+export async function toggleLbaWatchTerm(id: string, active: boolean) {
+  const { error } = await supabase.from("lba_watchlist").update({ active }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteLbaWatchTerm(id: string) {
+  const { error } = await supabase.from("lba_watchlist").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- LBA scan runs ----------
+export async function fetchLbaScanRuns(conferenceId: string): Promise<LbaScanRun[]> {
+  const { data, error } = await supabase
+    .from("lba_scan_runs")
+    .select("*")
+    .eq("conference_id", conferenceId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    status: (r.status as string) ?? "running",
+    sourcesScanned: (r.sources_scanned as string[]) ?? [],
+    alertsFound: Number(r.alerts_found ?? 0),
+    newAlerts: Number(r.new_alerts ?? 0),
+    error: (r.error as string) ?? undefined,
+    durationMs: Number(r.duration_ms ?? 0),
+    createdAt: r.created_at as string,
+  }));
+}
+
 
 // ---------- Comments ----------
 export async function fetchComments(conferenceId: string): Promise<Comment[]> {
