@@ -715,10 +715,11 @@ function PeopleTable({
                 <TableCell className="text-sm">
                   {[first?.asset, first?.trialId].filter(Boolean).join(" / ") || "—"}
                 </TableCell>
+                <TableCell className="text-sm">{first?.day || "—"}</TableCell>
                 <TableCell className="text-sm">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    {[first?.day, first?.time].filter(Boolean).join(" · ") || "—"}
+                    {first?.time || "—"}
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
