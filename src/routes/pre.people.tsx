@@ -699,6 +699,9 @@ function PeopleTable({
                 {!hideCompany && (
                   <TableCell className="text-sm text-muted-foreground">{p.company}</TableCell>
                 )}
+                <TableCell className="text-sm text-muted-foreground">
+                  {p.location || "—"}
+                </TableCell>
                 <TableCell className="text-sm">
                   <span className="line-clamp-2">{first?.sessionTitle || "—"}</span>
                   {first?.sourceUrl && (
