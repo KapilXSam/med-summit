@@ -10,12 +10,23 @@ const NOISE = /^(et al\.?|and colleagues|others|n\/a|unknown|-|—)$/i;
 
 export function splitAuthors(authors: string): string[] {
   if (!authors) return [];
-  return authors
-    .replace(/\bet\.? al\.?/gi, ";")
-    .split(/[;•|]|,(?=\s*[A-ZÀ-Ý])|\band\b/g)
+  // Structured feeds use "Name (City, Country); Name (City, Country)".
+  // Legacy free text uses commas / "et al." — only fall back to that when no ";" is present.
+  const parts = authors.includes(";")
+    ? authors.split(";")
+    : authors.replace(/\bet\.? al\.?/gi, ";").split(/[;•|]|,(?=\s*[A-ZÀ-Ý])|\band\b/g);
+  return parts
     .map((n) => n.replace(/\s+/g, " ").trim().replace(/[.,;]+$/, "").trim())
     .filter((n) => n.length > 1 && !NOISE.test(n));
 }
+
+/** "Ana Oaknin (Majadahonda, Spain)" -> { name, location } */
+export function parsePersonEntry(entry: string): { name: string; location: string } {
+  const m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(entry);
+  if (m && m[1].trim()) return { name: m[1].trim(), location: m[2].trim() };
+  return { name: entry.trim(), location: "" };
+}
+
 
 export function personKeyOf(name: string): string {
   return name
