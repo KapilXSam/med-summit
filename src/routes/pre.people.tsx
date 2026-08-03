@@ -639,9 +639,11 @@ function PeopleTable({
           <TableHead className="w-8" />
           <TableHead className="min-w-44">Person</TableHead>
           {!hideCompany && <TableHead className="min-w-40">Company</TableHead>}
+          <TableHead className="min-w-32">Location</TableHead>
           <TableHead className="min-w-64">Session</TableHead>
           <TableHead className="min-w-32">Asset / Trial</TableHead>
-          <TableHead className="min-w-36">Day &amp; time</TableHead>
+          <TableHead className="min-w-28">Date</TableHead>
+          <TableHead className="min-w-24">Time</TableHead>
           <TableHead className="min-w-28">Hall</TableHead>
           <TableHead className="min-w-32">Indication</TableHead>
           <TableHead className="min-w-28">Priority</TableHead>
