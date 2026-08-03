@@ -10,12 +10,23 @@ const NOISE = /^(et al\.?|and colleagues|others|n\/a|unknown|-|—)$/i;
 
 export function splitAuthors(authors: string): string[] {
   if (!authors) return [];
-  return authors
-    .replace(/\bet\.? al\.?/gi, ";")
-    .split(/[;•|]|,(?=\s*[A-ZÀ-Ý])|\band\b/g)
+  // Structured feeds use "Name (City, Country); Name (City, Country)".
+  // Legacy free text uses commas / "et al." — only fall back to that when no ";" is present.
+  const parts = authors.includes(";")
+    ? authors.split(";")
+    : authors.replace(/\bet\.? al\.?/gi, ";").split(/[;•|]|,(?=\s*[A-ZÀ-Ý])|\band\b/g);
+  return parts
     .map((n) => n.replace(/\s+/g, " ").trim().replace(/[.,;]+$/, "").trim())
     .filter((n) => n.length > 1 && !NOISE.test(n));
 }
+
+/** "Ana Oaknin (Majadahonda, Spain)" -> { name, location } */
+export function parsePersonEntry(entry: string): { name: string; location: string } {
+  const m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(entry);
+  if (m && m[1].trim()) return { name: m[1].trim(), location: m[2].trim() };
+  return { name: entry.trim(), location: "" };
+}
+
 
 export function personKeyOf(name: string): string {
   return name
@@ -72,6 +83,8 @@ export interface Person {
   key: string;
   name: string;
   company: string;
+  /** City, Country as published by the congress (when available). */
+  location?: string;
   manual: boolean;
   appearances: Appearance[];
 }
@@ -89,8 +102,8 @@ export function initialsOf(name: string) {
 export function buildPeople(sessions: Session[]): Person[] {
   const map = new Map<string, Person>();
   for (const s of sessions) {
-    const names = splitAuthors(s.authors);
-    if (names.length === 0) continue;
+    const entries = splitAuthors(s.authors);
+    if (entries.length === 0) continue;
     const appearance: Appearance = {
       sessionId: s.id,
       sessionTitle: s.title,
@@ -102,18 +115,23 @@ export function buildPeople(sessions: Session[]): Person[] {
       indication: indicationFor(s),
       sourceUrl: s.sourceUrl,
     };
-    for (const name of names) {
+    for (const entry of entries) {
+      const { name, location } = parsePersonEntry(entry);
       const key = personKeyOf(name);
       if (!key) continue;
       const existing = map.get(key);
       if (existing) {
         existing.appearances.push(appearance);
-        if (!existing.company && s.affiliation) existing.company = s.affiliation;
+        if (!existing.location && location) existing.location = location;
+        if ((!existing.company || existing.company === "Unaffiliated") && (s.affiliation || location)) {
+          existing.company = s.affiliation || location;
+        }
       } else {
         map.set(key, {
           key,
           name,
-          company: s.affiliation || "Unaffiliated",
+          company: s.affiliation || location || "Unaffiliated",
+          location: location || undefined,
           manual: false,
           appearances: [appearance],
         });
@@ -122,6 +140,7 @@ export function buildPeople(sessions: Session[]): Person[] {
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
+
 
 /** Minutes-since-midnight of the first time found in a time string, or null. */
 export function startMinutes(time: string): number | null {
