@@ -818,11 +818,13 @@ function PeopleTable({
                     <TableCell />
                     <TableCell className="text-xs text-muted-foreground">also presenting</TableCell>
                     {!hideCompany && <TableCell />}
+                    <TableCell />
                     <TableCell className="text-sm">
                       <span className="line-clamp-2">{a.sessionTitle}</span>
                     </TableCell>
                     <TableCell>{[a.asset, a.trialId].filter(Boolean).join(" / ") || "—"}</TableCell>
-                    <TableCell>{[a.day, a.time].filter(Boolean).join(" · ") || "—"}</TableCell>
+                    <TableCell>{a.day || "—"}</TableCell>
+                    <TableCell>{a.time || "—"}</TableCell>
                     <TableCell>{a.room || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-[11px]">
