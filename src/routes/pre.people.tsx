@@ -639,9 +639,11 @@ function PeopleTable({
           <TableHead className="w-8" />
           <TableHead className="min-w-44">Person</TableHead>
           {!hideCompany && <TableHead className="min-w-40">Company</TableHead>}
+          <TableHead className="min-w-32">Location</TableHead>
           <TableHead className="min-w-64">Session</TableHead>
           <TableHead className="min-w-32">Asset / Trial</TableHead>
-          <TableHead className="min-w-36">Day &amp; time</TableHead>
+          <TableHead className="min-w-28">Date</TableHead>
+          <TableHead className="min-w-24">Time</TableHead>
           <TableHead className="min-w-28">Hall</TableHead>
           <TableHead className="min-w-32">Indication</TableHead>
           <TableHead className="min-w-28">Priority</TableHead>
@@ -697,6 +699,9 @@ function PeopleTable({
                 {!hideCompany && (
                   <TableCell className="text-sm text-muted-foreground">{p.company}</TableCell>
                 )}
+                <TableCell className="text-sm text-muted-foreground">
+                  {p.location || "—"}
+                </TableCell>
                 <TableCell className="text-sm">
                   <span className="line-clamp-2">{first?.sessionTitle || "—"}</span>
                   {first?.sourceUrl && (
@@ -713,10 +718,11 @@ function PeopleTable({
                 <TableCell className="text-sm">
                   {[first?.asset, first?.trialId].filter(Boolean).join(" / ") || "—"}
                 </TableCell>
+                <TableCell className="text-sm">{first?.day || "—"}</TableCell>
                 <TableCell className="text-sm">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    {[first?.day, first?.time].filter(Boolean).join(" · ") || "—"}
+                    {first?.time || "—"}
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
@@ -812,11 +818,13 @@ function PeopleTable({
                     <TableCell />
                     <TableCell className="text-xs text-muted-foreground">also presenting</TableCell>
                     {!hideCompany && <TableCell />}
+                    <TableCell />
                     <TableCell className="text-sm">
                       <span className="line-clamp-2">{a.sessionTitle}</span>
                     </TableCell>
                     <TableCell>{[a.asset, a.trialId].filter(Boolean).join(" / ") || "—"}</TableCell>
-                    <TableCell>{[a.day, a.time].filter(Boolean).join(" · ") || "—"}</TableCell>
+                    <TableCell>{a.day || "—"}</TableCell>
+                    <TableCell>{a.time || "—"}</TableCell>
                     <TableCell>{a.room || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-[11px]">
