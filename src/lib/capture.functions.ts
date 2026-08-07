@@ -139,7 +139,8 @@ export const analyzePosterCapture = createServerFn({ method: "POST" })
       contradictory: raw.contradictory === true,
       sourceQuote: str("sourceQuote"),
       page: Math.max(1, Math.round(num("page", 1))),
-      confidence: Math.max(0, Math.min(100, Math.round(num("confidence", 0)))),
+      // stored on the platform-wide 1-10 confidence scale
+      confidence: Math.max(0, Math.min(10, Math.round(num("confidence", 0) / 10))),
       ocrText: str("ocrText"),
     };
   });
