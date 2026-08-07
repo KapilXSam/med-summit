@@ -55,6 +55,7 @@ function Capture() {
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<PosterAnalysis | null>(null);
   const [capturedBy, setCapturedBy] = useState("");
+  const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -80,6 +81,7 @@ function Capture() {
         data: { conferenceId: conference.id, fileName: file.name, mimeType, dataBase64: base64 },
       });
       setResult(analysis);
+      setTitle(analysis.title === "Untitled capture" ? "" : analysis.title);
       setStage("review");
       if (analysis.warning) toast.warning(analysis.warning);
     } catch (e) {
@@ -93,7 +95,7 @@ function Capture() {
     setSaving(true);
     try {
       await addPoster(conference.id, {
-        title: result.title,
+        title: title.trim(),
         presenter: result.presenter,
         capturedBy: capturedBy.trim(),
         therapyArea: result.therapyArea,
@@ -209,13 +211,18 @@ function Capture() {
                 />
               )}
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-medium">{result.title}</div>
-                  <div className="text-xs text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Title</label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Poster or slide title"
+                  />
+                  <div className="mt-1 text-xs text-muted-foreground">
                     {result.presenter || "Presenter not legible"} · captured just now
                   </div>
                 </div>
-                <ConfidenceBadge score={result.confidence} />
+                <ConfidenceBadge score={result.confidence} className="mt-6" />
               </div>
 
               <div className="flex flex-wrap gap-2">
