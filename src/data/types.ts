@@ -61,6 +61,8 @@ export interface Poster {
   sourceQuote: string;
   page: number;
   confidence: number;
+  imagePath?: string;
+  ocrText?: string;
 }
 
 export interface Endpoint {
