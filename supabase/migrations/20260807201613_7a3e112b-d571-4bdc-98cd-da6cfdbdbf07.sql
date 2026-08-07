@@ -1,0 +1,3 @@
+ALTER TABLE public.posters
+  ADD COLUMN IF NOT EXISTS image_path text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS ocr_text text NOT NULL DEFAULT '';

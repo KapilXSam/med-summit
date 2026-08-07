@@ -821,7 +821,9 @@ export type Database = {
           contradictory: boolean
           created_at: string
           id: string
+          image_path: string
           ocr_status: string
+          ocr_text: string
           page: number
           presenter: string
           significant: boolean
@@ -839,7 +841,9 @@ export type Database = {
           contradictory?: boolean
           created_at?: string
           id?: string
+          image_path?: string
           ocr_status?: string
+          ocr_text?: string
           page?: number
           presenter?: string
           significant?: boolean
@@ -857,7 +861,9 @@ export type Database = {
           contradictory?: boolean
           created_at?: string
           id?: string
+          image_path?: string
           ocr_status?: string
+          ocr_text?: string
           page?: number
           presenter?: string
           significant?: boolean
