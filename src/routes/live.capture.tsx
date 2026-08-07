@@ -270,7 +270,7 @@ function Capture() {
               </div>
 
               <div className="flex gap-2">
-                <Button className="flex-1" onClick={save} disabled={saving}>
+                <Button className="flex-1" onClick={save} disabled={saving || !title.trim()}>
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save evidence
                 </Button>
