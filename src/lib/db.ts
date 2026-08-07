@@ -289,6 +289,8 @@ export async function fetchPosters(conferenceId: string): Promise<Poster[]> {
     sourceQuote: p.source_quote,
     page: p.page,
     confidence: p.confidence,
+    imagePath: (p as { image_path?: string }).image_path ?? "",
+    ocrText: (p as { ocr_text?: string }).ocr_text ?? "",
   }));
 }
 
@@ -307,7 +309,9 @@ export async function addPoster(conferenceId: string, poster: Partial<Poster> & 
     source_quote: poster.sourceQuote ?? "",
     page: poster.page ?? 1,
     confidence: poster.confidence ?? 0,
-  });
+    image_path: poster.imagePath ?? "",
+    ocr_text: poster.ocrText ?? "",
+  } as never);
   if (error) throw error;
 }
 
