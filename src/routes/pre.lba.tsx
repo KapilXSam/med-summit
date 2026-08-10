@@ -621,21 +621,26 @@ const EMPTY_MANUAL: NewLbaAlert = {
   sourceUrl: "",
 };
 
-/** Manual entry for late-breakers the scan hasn't picked up yet. */
+/** Manual entry / editing for late-breakers. */
 function ManualLbaDialog({
   open,
   onOpenChange,
   onSubmit,
   pending,
+  initial,
+  mode = "add",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (v: NewLbaAlert) => void;
   pending: boolean;
+  initial?: NewLbaAlert;
+  mode?: "add" | "edit";
 }) {
-  const [form, setForm] = useState<NewLbaAlert>(EMPTY_MANUAL);
+  const [form, setForm] = useState<NewLbaAlert>(initial ?? EMPTY_MANUAL);
   const set = (k: keyof NewLbaAlert) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+
 
   const fields: Array<[keyof NewLbaAlert, string, string]> = [
     ["abstractNumber", "Abstract number", "LBA5001"],
