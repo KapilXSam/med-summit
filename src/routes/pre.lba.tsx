@@ -91,12 +91,14 @@ function LbaMonitor() {
   const { data: runs = [] } = useLbaScanRuns();
   const scan = useServerFn(scanLbaFeeds);
 
-  const [tab, setTab] = useState<"relevant" | "all" | "dismissed">("relevant");
+  const [tab, setTab] = useState<"relevant" | "all" | "pending" | "dismissed">("relevant");
   const [sourceUrl, setSourceUrl] = useState("");
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState("keyword");
   const [priority, setPriority] = useState("2");
   const [manualOpen, setManualOpen] = useState(false);
+  const [scanCompanies, setScanCompanies] = useState(true);
+  const [editing, setEditing] = useState<LbaAlert | null>(null);
 
   const manualMutation = useMutation({
     mutationFn: (v: NewLbaAlert) => addLbaAlert(conference.id, v),
@@ -114,12 +116,33 @@ function LbaMonitor() {
     qc.invalidateQueries({ queryKey: ["lba-runs", conference.id] });
   };
 
+  const editMutation = useMutation({
+    mutationFn: ({ id, values }: { id: string; values: NewLbaAlert }) =>
+      updateLbaAlert(id, values),
+    onSuccess: () => {
+      setEditing(null);
+      invalidate();
+      toast.success("Late-breaker updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => approveLbaAlert(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Approved — moved into the live feed");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const scanMutation = useMutation({
     mutationFn: () =>
       scan({
         data: {
           conferenceId: conference.id,
           conferenceName: conference.name,
+          scanCompanies,
           ...(sourceUrl.trim() ? { urls: [sourceUrl.trim()] } : {}),
         },
       }),
@@ -127,11 +150,21 @@ function LbaMonitor() {
       invalidate();
       toast.success(
         `Scan complete — ${r.found} late-breakers (${r.created} new, ${r.updated} updated)`,
-        { description: r.warning },
+        {
+          description:
+            [
+              r.pending ? `${r.pending} press-release find(s) need approval` : "",
+              r.companiesScanned.length ? `Companies: ${r.companiesScanned.join(", ")}` : "",
+              r.warning ?? "",
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined,
+        },
       );
     },
     onError: (e: Error) => toast.error(e.message || "Scan failed"),
   });
+
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: LbaStatus }) =>
