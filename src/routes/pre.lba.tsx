@@ -496,24 +496,49 @@ function LbaMonitor() {
 function AlertCard({
   alert: l,
   onStatus,
+  onApprove,
+  onEdit,
+  busy,
 }: {
   alert: LbaAlert;
   onStatus: (s: LbaStatus) => void;
+  onApprove: () => void;
+  onEdit: () => void;
+  busy: boolean;
 }) {
+  const isPending = l.approval === "pending";
   return (
-    <Card className={l.relevantToKit ? "border-primary/40" : undefined}>
+    <Card
+      className={
+        isPending ? "border-warning/50 bg-warning/5" : l.relevantToKit ? "border-primary/40" : undefined
+      }
+    >
       <CardContent className="flex items-start gap-3 p-4">
         <div
           className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
             l.relevantToKit ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           }`}
         >
-          <BellRing className="h-4 w-4" />
+          {l.sourceType === "company_pr" ? (
+            <Building2 className="h-4 w-4" />
+          ) : (
+            <BellRing className="h-4 w-4" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {isPending && <Badge variant="outline">Needs approval</Badge>}
+            <Badge variant="outline">
+              {l.sourceType === "company_pr"
+                ? `Press release${l.company ? ` · ${l.company}` : ""}`
+                : l.sourceType === "manual"
+                  ? "Manual entry"
+                  : "Congress site"}
+            </Badge>
             {l.relevantToKit ? <Badge>Relevant to your KIT</Badge> : <Badge variant="outline">General</Badge>}
             <Badge variant="secondary">Score {l.relevanceScore}</Badge>
+            {l.edited && <Badge variant="outline">Edited</Badge>}
+
             {l.abstractNumber && (
               <span className="font-mono text-xs text-muted-foreground">{l.abstractNumber}</span>
             )}
