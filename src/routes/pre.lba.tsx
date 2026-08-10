@@ -198,13 +198,20 @@ function LbaMonitor() {
     }),
   };
 
+  const pendingAlerts = useMemo(
+    () => alerts.filter((a) => a.approval === "pending" && a.status !== "dismissed"),
+    [alerts],
+  );
+
   const filtered = useMemo(() => {
+    if (tab === "pending") return pendingAlerts;
     if (tab === "dismissed") return alerts.filter((a) => a.status === "dismissed");
-    const live = alerts.filter((a) => a.status !== "dismissed");
+    const live = alerts.filter((a) => a.status !== "dismissed" && a.approval !== "pending");
     return tab === "relevant" ? live.filter((a) => a.relevantToKit) : live;
-  }, [alerts, tab]);
+  }, [alerts, pendingAlerts, tab]);
 
   const lastRun = runs[0];
+
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
