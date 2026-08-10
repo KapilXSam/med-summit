@@ -417,6 +417,14 @@ function LbaMonitor() {
         <TabsList>
           <TabsTrigger value="relevant">Relevant</TabsTrigger>
           <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-1.5">
+            Pending
+            {pendingAlerts.length > 0 && (
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                {pendingAlerts.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="dismissed">Dismissed</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -425,7 +433,19 @@ function LbaMonitor() {
         {isLoading &&
           [0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
 
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && filtered.length === 0 && tab === "pending" && (
+          <Card>
+            <CardContent className="p-8 text-center text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Nothing awaiting approval</p>
+              <p className="mx-auto mt-2 max-w-md">
+                Press-release finds from watchlist companies show up here first so you can
+                verify them before they join the live feed.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoading && filtered.length === 0 && tab !== "pending" && (
           <Card>
             <CardContent className="space-y-3 p-8 text-center text-sm text-muted-foreground">
               <p className="font-medium text-foreground">
@@ -462,9 +482,13 @@ function LbaMonitor() {
             key={l.id}
             alert={l}
             onStatus={(status) => statusMutation.mutate({ id: l.id, status })}
+            onApprove={() => approveMutation.mutate(l.id)}
+            onEdit={() => setEditing(l)}
+            busy={approveMutation.isPending}
           />
         ))}
       </div>
+
     </div>
   );
 }
