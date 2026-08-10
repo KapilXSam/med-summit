@@ -246,3 +246,116 @@ export function detectedLabel(date = new Date()): string {
     minute: "2-digit",
   });
 }
+
+// ---------- Company press-release lane ----------
+
+const PR_HINT =
+  /(press|news|release|media|investor|announce|present|data|abstract|late[- ]?break)/i;
+
+/** Find candidate press-release / newsroom pages for a company + conference. */
+export async function discoverCompanyPressReleases(
+  company: string,
+  conferenceName: string,
+  limit = 2,
+): Promise<string[]> {
+  const res = await fetch("https://api.firecrawl.dev/v2/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `${company} press release "${conferenceName}" late-breaking data presentation`,
+      limit: 6,
+      tbs: "qdr:y",
+    }),
+  });
+  if (!res.ok) throw new Error(`Firecrawl search failed (${res.status})`);
+  const json = (await res.json()) as Record<string, unknown>;
+  const raw = json.data;
+  const items = (Array.isArray(raw)
+    ? raw
+    : ((raw as { web?: unknown[] })?.web ?? (json.results as unknown[]) ?? [])) as Array<{
+    url?: string;
+    title?: string;
+    description?: string;
+  }>;
+
+  const scored = items
+    .filter((i) => i.url && isPublicHttpUrl(i.url))
+    .map((i) => ({
+      url: i.url as string,
+      score:
+        (PR_HINT.test(i.title ?? "") ? 2 : 0) +
+        (PR_HINT.test(i.url ?? "") ? 1 : 0) +
+        (PR_HINT.test(i.description ?? "") ? 1 : 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const s of scored) {
+    if (seen.has(s.url)) continue;
+    seen.add(s.url);
+    urls.push(s.url);
+    if (urls.length >= limit) break;
+  }
+  return urls;
+}
+
+/**
+ * Extract upcoming late-breaker signals from a company press release.
+ * Pre-embargo releases rarely carry abstract numbers, so blanks are expected.
+ */
+export async function extractCompanyLbaSignals(
+  markdown: string,
+  sourceUrl: string,
+  company: string,
+  conferenceName: string,
+): Promise<RawLba[]> {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) throw new Error("AI is not configured");
+  if (!markdown.trim()) return [];
+  const gateway = createLovableAiGatewayProvider(apiKey);
+
+  const prompt = `You are a pharma competitive-intelligence analyst monitoring ${conferenceName}.
+
+The page below is from ${company}. Extract ONLY announcements of data the company will present (or has just presented) at ${conferenceName}, especially late-breaking / plenary / presidential-symposium presentations. Ignore unrelated corporate news, financials, regulatory filings and other conferences.
+
+For each announced presentation return:
+- abstractNumber (only if explicitly stated, otherwise "")
+- title (the trial/data readout being presented, as stated)
+- authors ("" unless a presenter is named)
+- sponsor ("${company}")
+- trialId (NCT number or trial acronym, "" if absent)
+- indication (disease/tumour type, "" if absent)
+- phase (e.g. "Phase 3", "" if absent)
+- summary (one factual sentence based only on the page text)
+
+Never invent an abstract number or data result. Use "" for anything not stated. Return ONLY a JSON array; return [] if the page announces nothing for ${conferenceName}.
+
+PAGE CONTENT:
+${markdown}`;
+
+  const { text } = await generateText({
+    model: gateway("google/gemini-3-flash-preview"),
+    prompt,
+  });
+
+  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  return parseJsonArray<Record<string, unknown>>(text)
+    .map((r) => ({
+      abstractNumber: str(r.abstractNumber),
+      title: str(r.title),
+      authors: str(r.authors),
+      sponsor: str(r.sponsor) || company,
+      trialId: str(r.trialId),
+      indication: str(r.indication),
+      phase: str(r.phase),
+      summary: str(r.summary),
+      sourceUrl,
+    }))
+    .filter((r) => r.title.length > 3)
+    .slice(0, 12);
+}
+
