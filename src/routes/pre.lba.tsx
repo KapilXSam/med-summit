@@ -713,8 +713,10 @@ function ManualLbaDialog({
             disabled={!form.title.trim() || pending}
             onClick={() => onSubmit({ ...form, title: form.title.trim() })}
           >
-            {pending && <Loader2 className="h-4 w-4 animate-spin" />} Add late-breaker
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />}{" "}
+            {mode === "edit" ? "Save changes" : "Add late-breaker"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
