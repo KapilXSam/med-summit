@@ -3,6 +3,8 @@ import { z } from "zod";
 import { isPublicHttpUrl } from "./safe-url";
 import {
   discoverLbaSources,
+  discoverCompanyPressReleases,
+  extractCompanyLbaSignals,
   extractLbas,
   scrapeMarkdown,
   scoreLba,
@@ -18,6 +20,8 @@ const ScanInput = z.object({
     .array(z.string().url().refine(isPublicHttpUrl, "URL must be public http(s)"))
     .max(6)
     .optional(),
+  companies: z.array(z.string().min(2).max(80)).max(8).optional(),
+  scanCompanies: z.boolean().optional(),
 });
 
 export interface LbaScanResult {
@@ -26,8 +30,11 @@ export interface LbaScanResult {
   found: number;
   created: number;
   updated: number;
+  pending: number;
+  companiesScanned: string[];
   warning?: string;
 }
+
 
 export const scanLbaFeeds = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ScanInput.parse(input))
