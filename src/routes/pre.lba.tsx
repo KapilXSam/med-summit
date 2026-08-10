@@ -24,8 +24,10 @@ import { useLbaAlerts, useLbaWatchlist, useLbaScanRuns } from "@/lib/hooks";
 import {
   addLbaAlert,
   addLbaWatchTerm,
+  approveLbaAlert,
   deleteLbaWatchTerm,
   toggleLbaWatchTerm,
+  updateLbaAlert,
   updateLbaStatus,
   type NewLbaAlert,
 } from "@/lib/db";
@@ -43,16 +45,19 @@ import { scanLbaFeeds } from "@/lib/lba.functions";
 import type { LbaAlert, LbaStatus } from "@/data/types";
 import {
   BellRing,
+  Building2,
   Check,
   Clock,
   ExternalLink,
   Loader2,
+  Pencil,
   Plus,
   Radar,
   RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/pre/lba")({
