@@ -249,6 +249,29 @@ function LbaMonitor() {
         pending={manualMutation.isPending}
       />
 
+      <ManualLbaDialog
+        key={editing?.id ?? "edit"}
+        open={Boolean(editing)}
+        onOpenChange={(v) => !v && setEditing(null)}
+        onSubmit={(v) => editing && editMutation.mutate({ id: editing.id, values: v })}
+        pending={editMutation.isPending}
+        initial={
+          editing
+            ? {
+                title: editing.title,
+                abstractNumber: editing.abstractNumber,
+                sponsor: editing.sponsor,
+                trialId: editing.trialId,
+                indication: editing.indication,
+                phase: editing.phase,
+                summary: editing.summary,
+                sourceUrl: editing.sourceUrl ?? "",
+              }
+            : undefined
+        }
+        mode="edit"
+      />
+
 
       <Card>
         <CardHeader className="pb-3">
@@ -267,6 +290,24 @@ function LbaMonitor() {
               </Button>
             )}
           </div>
+          <div className="flex items-start gap-2.5 rounded-lg border bg-muted/30 p-2.5">
+            <Switch
+              id="scan-companies"
+              checked={scanCompanies}
+              onCheckedChange={setScanCompanies}
+            />
+            <div className="text-xs">
+              <Label htmlFor="scan-companies" className="text-sm font-medium">
+                Also scan company press releases
+              </Label>
+              <p className="mt-0.5 text-muted-foreground">
+                Sweeps newsrooms of the companies on your watchlist for late-breaker
+                announcements. These land in <span className="font-medium">Pending</span>{" "}
+                for your approval; congress-site finds go straight into the feed.
+              </p>
+            </div>
+          </div>
+
           {lastRun && (
             <p className="text-xs text-muted-foreground">
               Last scan {new Date(lastRun.createdAt).toLocaleString()} ·{" "}
