@@ -120,6 +120,8 @@ export interface Insight {
 }
 
 export type LbaStatus = "new" | "reviewed" | "dismissed";
+export type LbaSourceType = "conference" | "company_pr" | "manual";
+export type LbaApproval = "approved" | "pending";
 
 export interface LbaAlert {
   id: string;
@@ -139,7 +141,12 @@ export interface LbaAlert {
   status: LbaStatus;
   watchTerm: string;
   lastSeenAt: string;
+  sourceType: LbaSourceType;
+  approval: LbaApproval;
+  company: string;
+  edited: boolean;
 }
+
 
 export interface LbaWatchTerm {
   id: string;
