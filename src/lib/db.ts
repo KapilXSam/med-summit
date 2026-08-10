@@ -422,8 +422,13 @@ function mapLba(row: Record<string, unknown>): LbaAlert {
     status: (s("status") || "new") as LbaAlert["status"],
     watchTerm: s("watch_term"),
     lastSeenAt: s("last_seen_at") || s("created_at"),
+    sourceType: (s("source_type") || "conference") as LbaAlert["sourceType"],
+    approval: (s("approval") || "approved") as LbaAlert["approval"],
+    company: s("company"),
+    edited: Boolean(row.edited),
   };
 }
+
 
 export async function fetchLbaAlerts(conferenceId: string): Promise<LbaAlert[]> {
   const { data, error } = await supabase
