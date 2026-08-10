@@ -655,17 +655,22 @@ function ManualLbaDialog({
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) setForm(EMPTY_MANUAL);
+        if (!v) setForm(initial ?? EMPTY_MANUAL);
         onOpenChange(v);
       }}
     >
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add a late-breaking abstract</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Edit late-breaking abstract" : "Add a late-breaking abstract"}
+          </DialogTitle>
           <DialogDescription>
-            For LBAs published on the congress site that the scan hasn&apos;t caught yet.
+            {mode === "edit"
+              ? "Your corrections are kept — later scans won't overwrite this record."
+              : "For LBAs published on the congress site that the scan hasn't caught yet."}
           </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="lba-title">Title</Label>
