@@ -647,9 +647,12 @@ export type Database = {
       lba_alerts: {
         Row: {
           abstract_number: string
+          approval: string
+          company: string
           conference_id: string | null
           created_at: string
           detected_at: string
+          edited: boolean
           first_seen_at: string
           id: string
           indication: string
@@ -659,6 +662,7 @@ export type Database = {
           phase: string
           relevance_score: number
           relevant_to_kit: boolean
+          source_type: string
           source_url: string | null
           sponsor: string
           status: string
@@ -670,9 +674,12 @@ export type Database = {
         }
         Insert: {
           abstract_number?: string
+          approval?: string
+          company?: string
           conference_id?: string | null
           created_at?: string
           detected_at?: string
+          edited?: boolean
           first_seen_at?: string
           id?: string
           indication?: string
@@ -682,6 +689,7 @@ export type Database = {
           phase?: string
           relevance_score?: number
           relevant_to_kit?: boolean
+          source_type?: string
           source_url?: string | null
           sponsor?: string
           status?: string
@@ -693,9 +701,12 @@ export type Database = {
         }
         Update: {
           abstract_number?: string
+          approval?: string
+          company?: string
           conference_id?: string | null
           created_at?: string
           detected_at?: string
+          edited?: boolean
           first_seen_at?: string
           id?: string
           indication?: string
@@ -705,6 +716,7 @@ export type Database = {
           phase?: string
           relevance_score?: number
           relevant_to_kit?: boolean
+          source_type?: string
           source_url?: string | null
           sponsor?: string
           status?: string

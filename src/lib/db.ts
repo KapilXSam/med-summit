@@ -422,8 +422,13 @@ function mapLba(row: Record<string, unknown>): LbaAlert {
     status: (s("status") || "new") as LbaAlert["status"],
     watchTerm: s("watch_term"),
     lastSeenAt: s("last_seen_at") || s("created_at"),
+    sourceType: (s("source_type") || "conference") as LbaAlert["sourceType"],
+    approval: (s("approval") || "approved") as LbaAlert["approval"],
+    company: s("company"),
+    edited: Boolean(row.edited),
   };
 }
+
 
 export async function fetchLbaAlerts(conferenceId: string): Promise<LbaAlert[]> {
   const { data, error } = await supabase
@@ -474,6 +479,9 @@ export async function addLbaAlert(conferenceId: string, input: NewLbaAlert) {
     relevance_score: 50,
     match_reason: "Added manually",
     status: "new",
+    source_type: "manual",
+    approval: "approved",
+    edited: true,
     detected_at: new Date().toLocaleString([], {
       month: "short",
       day: "numeric",
@@ -483,6 +491,44 @@ export async function addLbaAlert(conferenceId: string, input: NewLbaAlert) {
   } as never);
   if (error) throw error;
 }
+
+/** Approve a pending press-release find so it joins the live alert list. */
+export async function approveLbaAlert(id: string) {
+  const { error } = await supabase
+    .from("lba_alerts")
+    .update({ approval: "approved", status: "new" } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export interface LbaAlertEdit {
+  title?: string;
+  abstractNumber?: string;
+  sponsor?: string;
+  company?: string;
+  trialId?: string;
+  indication?: string;
+  phase?: string;
+  summary?: string;
+  sourceUrl?: string;
+}
+
+/** Save manual corrections; edited rows are protected from later scans. */
+export async function updateLbaAlert(id: string, input: LbaAlertEdit) {
+  const patch: Record<string, unknown> = { edited: true };
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.abstractNumber !== undefined) patch.abstract_number = input.abstractNumber;
+  if (input.sponsor !== undefined) patch.sponsor = input.sponsor;
+  if (input.company !== undefined) patch.company = input.company;
+  if (input.trialId !== undefined) patch.trial_id = input.trialId;
+  if (input.indication !== undefined) patch.indication = input.indication;
+  if (input.phase !== undefined) patch.phase = input.phase;
+  if (input.summary !== undefined) patch.summary = input.summary;
+  if (input.sourceUrl !== undefined) patch.source_url = input.sourceUrl || null;
+  const { error } = await supabase.from("lba_alerts").update(patch as never).eq("id", id);
+  if (error) throw error;
+}
+
 
 
 // ---------- LBA watchlist ----------

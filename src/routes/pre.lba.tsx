@@ -24,8 +24,10 @@ import { useLbaAlerts, useLbaWatchlist, useLbaScanRuns } from "@/lib/hooks";
 import {
   addLbaAlert,
   addLbaWatchTerm,
+  approveLbaAlert,
   deleteLbaWatchTerm,
   toggleLbaWatchTerm,
+  updateLbaAlert,
   updateLbaStatus,
   type NewLbaAlert,
 } from "@/lib/db";
@@ -43,16 +45,19 @@ import { scanLbaFeeds } from "@/lib/lba.functions";
 import type { LbaAlert, LbaStatus } from "@/data/types";
 import {
   BellRing,
+  Building2,
   Check,
   Clock,
   ExternalLink,
   Loader2,
+  Pencil,
   Plus,
   Radar,
   RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/pre/lba")({
@@ -86,12 +91,14 @@ function LbaMonitor() {
   const { data: runs = [] } = useLbaScanRuns();
   const scan = useServerFn(scanLbaFeeds);
 
-  const [tab, setTab] = useState<"relevant" | "all" | "dismissed">("relevant");
+  const [tab, setTab] = useState<"relevant" | "all" | "pending" | "dismissed">("relevant");
   const [sourceUrl, setSourceUrl] = useState("");
   const [term, setTerm] = useState("");
   const [kind, setKind] = useState("keyword");
   const [priority, setPriority] = useState("2");
   const [manualOpen, setManualOpen] = useState(false);
+  const [scanCompanies, setScanCompanies] = useState(true);
+  const [editing, setEditing] = useState<LbaAlert | null>(null);
 
   const manualMutation = useMutation({
     mutationFn: (v: NewLbaAlert) => addLbaAlert(conference.id, v),
@@ -109,12 +116,33 @@ function LbaMonitor() {
     qc.invalidateQueries({ queryKey: ["lba-runs", conference.id] });
   };
 
+  const editMutation = useMutation({
+    mutationFn: ({ id, values }: { id: string; values: NewLbaAlert }) =>
+      updateLbaAlert(id, values),
+    onSuccess: () => {
+      setEditing(null);
+      invalidate();
+      toast.success("Late-breaker updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => approveLbaAlert(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Approved — moved into the live feed");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const scanMutation = useMutation({
     mutationFn: () =>
       scan({
         data: {
           conferenceId: conference.id,
           conferenceName: conference.name,
+          scanCompanies,
           ...(sourceUrl.trim() ? { urls: [sourceUrl.trim()] } : {}),
         },
       }),
@@ -122,11 +150,21 @@ function LbaMonitor() {
       invalidate();
       toast.success(
         `Scan complete — ${r.found} late-breakers (${r.created} new, ${r.updated} updated)`,
-        { description: r.warning },
+        {
+          description:
+            [
+              r.pending ? `${r.pending} press-release find(s) need approval` : "",
+              r.companiesScanned.length ? `Companies: ${r.companiesScanned.join(", ")}` : "",
+              r.warning ?? "",
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined,
+        },
       );
     },
     onError: (e: Error) => toast.error(e.message || "Scan failed"),
   });
+
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: LbaStatus }) =>
@@ -160,13 +198,20 @@ function LbaMonitor() {
     }),
   };
 
+  const pendingAlerts = useMemo(
+    () => alerts.filter((a) => a.approval === "pending" && a.status !== "dismissed"),
+    [alerts],
+  );
+
   const filtered = useMemo(() => {
+    if (tab === "pending") return pendingAlerts;
     if (tab === "dismissed") return alerts.filter((a) => a.status === "dismissed");
-    const live = alerts.filter((a) => a.status !== "dismissed");
+    const live = alerts.filter((a) => a.status !== "dismissed" && a.approval !== "pending");
     return tab === "relevant" ? live.filter((a) => a.relevantToKit) : live;
-  }, [alerts, tab]);
+  }, [alerts, pendingAlerts, tab]);
 
   const lastRun = runs[0];
+
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -204,6 +249,29 @@ function LbaMonitor() {
         pending={manualMutation.isPending}
       />
 
+      <ManualLbaDialog
+        key={editing?.id ?? "edit"}
+        open={Boolean(editing)}
+        onOpenChange={(v) => !v && setEditing(null)}
+        onSubmit={(v) => editing && editMutation.mutate({ id: editing.id, values: v })}
+        pending={editMutation.isPending}
+        initial={
+          editing
+            ? {
+                title: editing.title,
+                abstractNumber: editing.abstractNumber,
+                sponsor: editing.sponsor,
+                trialId: editing.trialId,
+                indication: editing.indication,
+                phase: editing.phase,
+                summary: editing.summary,
+                sourceUrl: editing.sourceUrl ?? "",
+              }
+            : undefined
+        }
+        mode="edit"
+      />
+
 
       <Card>
         <CardHeader className="pb-3">
@@ -222,6 +290,24 @@ function LbaMonitor() {
               </Button>
             )}
           </div>
+          <div className="flex items-start gap-2.5 rounded-lg border bg-muted/30 p-2.5">
+            <Switch
+              id="scan-companies"
+              checked={scanCompanies}
+              onCheckedChange={setScanCompanies}
+            />
+            <div className="text-xs">
+              <Label htmlFor="scan-companies" className="text-sm font-medium">
+                Also scan company press releases
+              </Label>
+              <p className="mt-0.5 text-muted-foreground">
+                Sweeps newsrooms of the companies on your watchlist for late-breaker
+                announcements. These land in <span className="font-medium">Pending</span>{" "}
+                for your approval; congress-site finds go straight into the feed.
+              </p>
+            </div>
+          </div>
+
           {lastRun && (
             <p className="text-xs text-muted-foreground">
               Last scan {new Date(lastRun.createdAt).toLocaleString()} ·{" "}
@@ -331,6 +417,14 @@ function LbaMonitor() {
         <TabsList>
           <TabsTrigger value="relevant">Relevant</TabsTrigger>
           <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-1.5">
+            Pending
+            {pendingAlerts.length > 0 && (
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                {pendingAlerts.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="dismissed">Dismissed</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -339,7 +433,19 @@ function LbaMonitor() {
         {isLoading &&
           [0, 1, 2].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
 
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && filtered.length === 0 && tab === "pending" && (
+          <Card>
+            <CardContent className="p-8 text-center text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Nothing awaiting approval</p>
+              <p className="mx-auto mt-2 max-w-md">
+                Press-release finds from watchlist companies show up here first so you can
+                verify them before they join the live feed.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoading && filtered.length === 0 && tab !== "pending" && (
           <Card>
             <CardContent className="space-y-3 p-8 text-center text-sm text-muted-foreground">
               <p className="font-medium text-foreground">
@@ -376,9 +482,13 @@ function LbaMonitor() {
             key={l.id}
             alert={l}
             onStatus={(status) => statusMutation.mutate({ id: l.id, status })}
+            onApprove={() => approveMutation.mutate(l.id)}
+            onEdit={() => setEditing(l)}
+            busy={approveMutation.isPending}
           />
         ))}
       </div>
+
     </div>
   );
 }
@@ -386,24 +496,49 @@ function LbaMonitor() {
 function AlertCard({
   alert: l,
   onStatus,
+  onApprove,
+  onEdit,
+  busy,
 }: {
   alert: LbaAlert;
   onStatus: (s: LbaStatus) => void;
+  onApprove: () => void;
+  onEdit: () => void;
+  busy: boolean;
 }) {
+  const isPending = l.approval === "pending";
   return (
-    <Card className={l.relevantToKit ? "border-primary/40" : undefined}>
+    <Card
+      className={
+        isPending ? "border-warning/50 bg-warning/5" : l.relevantToKit ? "border-primary/40" : undefined
+      }
+    >
       <CardContent className="flex items-start gap-3 p-4">
         <div
           className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
             l.relevantToKit ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           }`}
         >
-          <BellRing className="h-4 w-4" />
+          {l.sourceType === "company_pr" ? (
+            <Building2 className="h-4 w-4" />
+          ) : (
+            <BellRing className="h-4 w-4" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {isPending && <Badge variant="outline">Needs approval</Badge>}
+            <Badge variant="outline">
+              {l.sourceType === "company_pr"
+                ? `Press release${l.company ? ` · ${l.company}` : ""}`
+                : l.sourceType === "manual"
+                  ? "Manual entry"
+                  : "Congress site"}
+            </Badge>
             {l.relevantToKit ? <Badge>Relevant to your KIT</Badge> : <Badge variant="outline">General</Badge>}
             <Badge variant="secondary">Score {l.relevanceScore}</Badge>
+            {l.edited && <Badge variant="outline">Edited</Badge>}
+
             {l.abstractNumber && (
               <span className="font-mono text-xs text-muted-foreground">{l.abstractNumber}</span>
             )}
@@ -446,14 +581,22 @@ function AlertCard({
           </div>
         </div>
         <div className="flex shrink-0 flex-col gap-1.5">
-          {l.status !== "reviewed" && (
+          {isPending && (
+            <Button size="sm" onClick={onApprove} disabled={busy}>
+              <Check className="h-3.5 w-3.5" /> Approve
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
+          {!isPending && l.status !== "reviewed" && (
             <Button size="sm" variant="outline" onClick={() => onStatus("reviewed")}>
               <Check className="h-3.5 w-3.5" /> Reviewed
             </Button>
           )}
           {l.status !== "dismissed" ? (
             <Button size="sm" variant="ghost" onClick={() => onStatus("dismissed")}>
-              <X className="h-3.5 w-3.5" /> Dismiss
+              <X className="h-3.5 w-3.5" /> {isPending ? "Reject" : "Dismiss"}
             </Button>
           ) : (
             <Button size="sm" variant="ghost" onClick={() => onStatus("new")}>
@@ -461,6 +604,7 @@ function AlertCard({
             </Button>
           )}
         </div>
+
       </CardContent>
     </Card>
   );
@@ -477,21 +621,26 @@ const EMPTY_MANUAL: NewLbaAlert = {
   sourceUrl: "",
 };
 
-/** Manual entry for late-breakers the scan hasn't picked up yet. */
+/** Manual entry / editing for late-breakers. */
 function ManualLbaDialog({
   open,
   onOpenChange,
   onSubmit,
   pending,
+  initial,
+  mode = "add",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (v: NewLbaAlert) => void;
   pending: boolean;
+  initial?: NewLbaAlert;
+  mode?: "add" | "edit";
 }) {
-  const [form, setForm] = useState<NewLbaAlert>(EMPTY_MANUAL);
+  const [form, setForm] = useState<NewLbaAlert>(initial ?? EMPTY_MANUAL);
   const set = (k: keyof NewLbaAlert) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+
 
   const fields: Array<[keyof NewLbaAlert, string, string]> = [
     ["abstractNumber", "Abstract number", "LBA5001"],
@@ -506,17 +655,22 @@ function ManualLbaDialog({
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) setForm(EMPTY_MANUAL);
+        if (!v) setForm(initial ?? EMPTY_MANUAL);
         onOpenChange(v);
       }}
     >
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add a late-breaking abstract</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Edit late-breaking abstract" : "Add a late-breaking abstract"}
+          </DialogTitle>
           <DialogDescription>
-            For LBAs published on the congress site that the scan hasn&apos;t caught yet.
+            {mode === "edit"
+              ? "Your corrections are kept — later scans won't overwrite this record."
+              : "For LBAs published on the congress site that the scan hasn't caught yet."}
           </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="lba-title">Title</Label>
@@ -559,8 +713,10 @@ function ManualLbaDialog({
             disabled={!form.title.trim() || pending}
             onClick={() => onSubmit({ ...form, title: form.title.trim() })}
           >
-            {pending && <Loader2 className="h-4 w-4 animate-spin" />} Add late-breaker
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />}{" "}
+            {mode === "edit" ? "Save changes" : "Add late-breaker"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
