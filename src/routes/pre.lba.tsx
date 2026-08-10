@@ -581,14 +581,22 @@ function AlertCard({
           </div>
         </div>
         <div className="flex shrink-0 flex-col gap-1.5">
-          {l.status !== "reviewed" && (
+          {isPending && (
+            <Button size="sm" onClick={onApprove} disabled={busy}>
+              <Check className="h-3.5 w-3.5" /> Approve
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
+          {!isPending && l.status !== "reviewed" && (
             <Button size="sm" variant="outline" onClick={() => onStatus("reviewed")}>
               <Check className="h-3.5 w-3.5" /> Reviewed
             </Button>
           )}
           {l.status !== "dismissed" ? (
             <Button size="sm" variant="ghost" onClick={() => onStatus("dismissed")}>
-              <X className="h-3.5 w-3.5" /> Dismiss
+              <X className="h-3.5 w-3.5" /> {isPending ? "Reject" : "Dismiss"}
             </Button>
           ) : (
             <Button size="sm" variant="ghost" onClick={() => onStatus("new")}>
@@ -596,6 +604,7 @@ function AlertCard({
             </Button>
           )}
         </div>
+
       </CardContent>
     </Card>
   );
