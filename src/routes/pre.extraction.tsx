@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApp } from "@/context/app-context";
-import { useSessions } from "@/lib/hooks";
+import { useSessions, useLbaAlerts } from "@/lib/hooks";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -168,6 +168,7 @@ function deriveIndication(s: Session): string {
 function ConferenceCalendar() {
   const { conference } = useApp();
   const { data: sessions = [], isLoading } = useSessions();
+  const { data: lbaAlerts = [] } = useLbaAlerts();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -247,7 +248,7 @@ function ConferenceCalendar() {
       indications: allIndications.length,
       byType,
     };
-  }, [enriched, days.length, allIndications.length]);
+  }, [enriched, days.length, allIndications.length, lbaAlerts.length]);
 
   function toggle<T>(set: Set<T>, val: T, setter: (s: Set<T>) => void) {
     const n = new Set(set);
