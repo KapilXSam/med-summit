@@ -240,7 +240,7 @@ function ConferenceCalendar() {
     }
     return {
       total: enriched.length,
-      lba,
+      lba: Math.max(lba, lbaAlerts.length),
       rooms: rooms.size,
       presenters: presenters.size,
       days: days.length,
